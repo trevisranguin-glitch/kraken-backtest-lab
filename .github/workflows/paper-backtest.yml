@@ -4,6 +4,7 @@ on:
     paths:
       - 'kraken_collect_history.py'
       - 'kraken_backtest.py'
+      - 'kraken_compare_strategies.py'
       - 'tests/**'
       - '.github/workflows/paper-backtest.yml'
   workflow_dispatch:
@@ -24,6 +25,8 @@ jobs:
         run: python kraken_collect_history.py
       - name: Run isolated paper research
         run: python kraken_backtest.py > backtest-report.json
+      - name: Compare four strategies chronologically
+        run: python kraken_compare_strategies.py > strategy-comparison.json
       - name: Archive audit evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -32,5 +35,6 @@ jobs:
           path: |
             data/manifest.json
             backtest-report.json
+            strategy-comparison.json
           if-no-files-found: warn
           retention-days: 7
