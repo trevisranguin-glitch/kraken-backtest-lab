@@ -66,7 +66,7 @@ def run(directory=Path("data")):
     strategies=("sma20_50","sma50_200","momentum20","sma20_50_momentum")
     results={s:{"train":evaluate(rows,s,200,split),
                 "validation":evaluate(rows,s,split,len(common))} for s in strategies}
-    return {"mode":"RESEARCH_ONLY","executionEnabled":False,
+    # Passive reference: 25% equally allocated across three assets, 75% EUR,\n    # with entry and exit trading costs charged for a comparable closed period.\n    def passive(first,end):\n        allocation=START_EUR*MAX_CRYPTO_WEIGHT/len(PAIRS)\n        proceeds=0.0\n        for p in PAIRS:\n            entry=float(rows[p][first][1])*(1+SLIPPAGE)\n            exit_price=float(rows[p][end-1][4])*(1-SLIPPAGE)\n            qty=allocation/(entry*(1+FEE))\n            proceeds+=qty*exit_price*(1-FEE)\n        return round(100*((START_EUR*(1-MAX_CRYPTO_WEIGHT)+proceeds)/START_EUR-1),3)\n    benchmark={"train":passive(200,split),"validation":passive(split,len(common))}\n    return {"mode":"RESEARCH_ONLY","executionEnabled":False,\n            "passive_25pct_crypto_return_pct":benchmark,
             "aligned_bars":len(common),"train_bars":split-200,
             "validation_bars":len(common)-split,"strategies":results,
             "warning":"Short historical sample; validation starts flat with 200-bar warmup. Not production-equivalent."}
