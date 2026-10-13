@@ -1,0 +1,33 @@
+name: KRAKEN paper research backtest
+on:
+  push:
+    paths:
+      - 'kraken_collect_history.py'
+      - 'kraken_backtest.py'
+      - '.github/workflows/paper-backtest.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  paper-backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Collect closed Kraken public 4h candles
+        run: python kraken_collect_history.py
+      - name: Run isolated paper research
+        run: python kraken_backtest.py > backtest-report.json
+      - name: Archive audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kraken-paper-research
+          path: |
+            data/manifest.json
+            backtest-report.json
+          if-no-files-found: warn
+          retention-days: 7
