@@ -35,6 +35,8 @@ jobs:
           node-version: 22
       - run: npm install
       - run: npx tsc --noEmit
+      - name: Validate Expo project configuration
+        run: npx expo-doctor
   staging-health-check:
     runs-on: ubuntu-latest
     steps:
