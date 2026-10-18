@@ -19,7 +19,14 @@ export async function handle(request:Request,env:Env):Promise<Response>{
  }
  if(request.method==="POST"&&url.pathname==="/api/chat"){
   const body:any=await request.json().catch(()=>({})),message=String(body.message||"").trim().slice(0,1500);if(!message)return json({error:"MESSAGE_REQUIRED"},400);
-  return json({answer:"Diagnostic sécurisé : "+message+"\n\nLe MVP ne lance aucune commande. Vérifie d’abord l’état paper, les logs Worker et la clé d’audit. Toute réparation doit être prévisualisée puis approuvée; ordres réels, retraits et changements de production sont interdits.",provider:"safe-diagnostic-fallback",aiConfigured:Boolean(env.OPENAI_API_KEY),toolsExecuted:false});
+  const fallback="Diagnostic sécurisé : "+message+"\n\nLe MVP ne lance aucune commande. Vérifie d’abord l’état paper, les logs Worker et la clé d’audit. Toute réparation doit être prévisualisée puis approuvée; ordres réels, retraits et changements de production sont interdits.";
+  if(env.OPENAI_API_KEY){
+   try{
+    const response=await fetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"Authorization":"Bearer "+env.OPENAI_API_KEY,"Content-Type":"application/json"},body:JSON.stringify({model:"gpt-4.1-mini",store:false,max_output_tokens:350,instructions:"Tu es l'assistant de diagnostic Kraken Control. Réponds en français, de façon concise et factuelle. Le système est strictement PAPER_ONLY. Tu n'as aucun outil, n'exécutes aucune action et ne prétends jamais avoir modifié le système. Les ordres réels, retraits, secrets Kraken, changements de mode et modifications de production sont interdits. Propose des vérifications et des plans de réparation en lecture seule uniquement.",input:message})});
+    if(response.ok){const data:any=await response.json();const answer=String(data.output_text||data.output?.flatMap((item:any)=>item.content||[]).filter((part:any)=>part.type==="output_text").map((part:any)=>part.text).join("\n")||"Réponse IA vide.");return json({answer,provider:"openai-responses",aiConfigured:true,toolsExecuted:false});}
+   }catch{}
+  }
+  return json({answer:fallback,provider:"safe-diagnostic-fallback",aiConfigured:Boolean(env.OPENAI_API_KEY),toolsExecuted:false});
  }
  return json({error:"NOT_FOUND"},404);
 }
