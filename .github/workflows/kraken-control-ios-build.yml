@@ -20,8 +20,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: kraken-control/package-lock.json
       - name: Require Expo token
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
@@ -32,7 +30,7 @@ jobs:
           fi
       - name: Install mobile dependencies
         working-directory: kraken-control
-        run: npm ci
+        run: npm install
       - name: Validate Expo project
         working-directory: kraken-control
         env:
