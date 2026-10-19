@@ -3,11 +3,11 @@
 Expo / React Native iPhone dashboard for the Kraken paper-trading system.
 
 ## Staging endpoint
-- Worker: `kraken-control-staging`
-- URL: `https://kraken-control-staging.trevisranguin.workers.dev`
-- Health: `/health` (public, no secret data)
-- API: `/api/status`, `/api/chat`, `/api/repair/preview` (bearer token required)
-- Dedicated KV: `kraken-control-staging-data` (`e6bd3ec212d841ad8d1e187de0395072`)
+- Worker: 'kraken-control-staging'
+- URL: 'https://kraken-control-staging.trevisranguin.workers.dev'
+- Health: '/health' (public, no secret data)
+- API: '/api/status', '/api/chat', '/api/repair/preview' (bearer token required)
+- Dedicated KV: 'kraken-control-staging-data' ('e6bd3ec212d841ad8d1e187de0395072')
 
 ## Safety
 - Paper mode only. No real orders, withdrawals, or live-execution toggle.
@@ -16,22 +16,33 @@ Expo / React Native iPhone dashboard for the Kraken paper-trading system.
 - The AI has no tools and cannot execute actions.
 - The app never contains Kraken credentials, the control token, or Cloudflare API tokens.
 
-## Mobile setup
+## Mobile development
 Requires Node.js LTS.
 
 ```sh
-npm install
+cd kraken-control
+npm ci
 npx expo start
 ```
 
-The app defaults to the staging URL. Override it with `EXPO_PUBLIC_API_BASE_URL` if needed. Never put privileged credentials in `EXPO_PUBLIC_*` variables; they are bundled into the app.
+The app defaults to the staging URL. Override it with 'EXPO_PUBLIC_API_BASE_URL' if needed. Never put privileged credentials in 'EXPO_PUBLIC_*' variables; they are bundled into the app.
+
+## Prepare an iOS EAS build
+1. On a trusted computer, open a terminal in 'kraken-control'.
+2. Sign in to Expo: 'npx eas-cli@latest login'.
+3. Link/create the EAS project: 'npx eas-cli@latest init'. Review and commit the generated 'extra.eas.projectId' in 'app.json'.
+4. Create an Expo access token in your Expo account settings. In GitHub, open **Settings → Secrets and variables → Actions**, create repository secret 'EXPO_TOKEN', and paste the token there. Do not put the token in source code or chat.
+5. The workflow **Kraken Control iOS Build** can be run manually from GitHub Actions after that workflow exists on the repository's default branch. Select 'preview' for an internal test build.
+6. A physical-device internal iOS build may require Apple Developer signing credentials and device registration. EAS will report any missing requirement.
+
+The build workflow checks the Expo token, verifies that the project is linked, runs Expo Doctor, then requests the selected iOS build from EAS.
 
 ## Worker secrets
-- `CONTROL_TOKEN`: generated random bearer token, configured as a Cloudflare Worker secret.
-- `OPENAI_API_KEY`: optional, server-side only. Without it, chat uses a safe diagnostic fallback.
+- 'CONTROL_TOKEN': generated random bearer token, configured as a Cloudflare Worker secret.
+- 'OPENAI_API_KEY': optional, server-side only. Without it, chat uses a safe diagnostic fallback.
 
 ## Validation
-- Worker tests and TypeScript checks passed in GitHub Actions on commit `5e7f9990de168fe8194d88e3c06d30922509b59b`.
+- Worker tests, Worker TypeScript checks, mobile TypeScript, Expo Doctor, and the staging health check passed in GitHub Actions on commit 'b61e58729c9e710967d53518cc9b1e293bbde533'.
 - Staging Worker deployed with dedicated KV and a server-side control token.
 - Production bot unchanged. No live trading, withdrawals, or production writes.
-- iOS EAS build still requires an authenticated Expo/EAS project session.
+- The iOS binary has not been built yet; EAS project linking, Expo authentication, and Apple signing/device requirements must be completed first.
