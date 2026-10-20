@@ -1,1 +1,22 @@
-{"expo":{"name":"Kraken Control","slug":"kraken-control","version":"0.1.0","orientation":"portrait","userInterfaceStyle":"dark","ios":{"supportsTablet":false,"bundleIdentifier":"com.trevisranguin.krakencontrol"}}}
+{
+  "expo": {
+    "name": "Kraken Control",
+    "slug": "kraken-control",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "owner": "trxxxqs",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.trevisranguin.krakencontrol",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "c43e239e-7676-4b47-9305-e6c07638582c"
+      }
+    }
+  }
+}
