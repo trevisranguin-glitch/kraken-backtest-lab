@@ -10,12 +10,6 @@ on:
           - preview
           - production
         default: preview
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/kraken-control-ios-build.yml'
-      - 'kraken-control/**'
 permissions:
   contents: read
 jobs:
