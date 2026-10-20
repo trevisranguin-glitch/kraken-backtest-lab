@@ -1,0 +1,12 @@
+{
+  "name": "Kraken Control Mobile Dev",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
+  "forwardPorts": [8081, 19000, 19001],
+  "portsAttributes": {
+    "8081": { "label": "Expo Metro", "onAutoForward": "notify" },
+    "19000": { "label": "Expo", "onAutoForward": "notify" },
+    "19001": { "label": "Expo LAN", "onAutoForward": "notify" }
+  },
+  "postCreateCommand": "cd kraken-control && npm install",
+  "customizations": { "vscode": { "extensions": ["expo.vscode-expo-tools"] } }
+}
