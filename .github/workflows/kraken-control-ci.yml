@@ -6,7 +6,7 @@ on:
       - ".devcontainer/**"
       - ".github/workflows/kraken-control-ci.yml"
   push:
-    branches: ["feature/kraken-control-mvp"]
+    branches: ["feature/kraken-control-mvp", "main"]
     paths:
       - "kraken-control/**"
       - ".devcontainer/**"
