@@ -31,6 +31,6 @@ export async function handle(request:Request,env:Env):Promise<Response>{
   }
   return json({answer:fallback,provider:"safe-diagnostic-fallback",aiConfigured:Boolean(env.OPENAI_API_KEY),toolsExecuted:false},200,origin||undefined);
  }
- return json({error:"NOT_FOUND"},404);
+ return json({error:"NOT_FOUND"},404,origin||undefined);
 }
 export default {fetch:handle};
