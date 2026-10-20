@@ -6,7 +6,8 @@
   "scripts": {
     "start": "expo start",
     "ios": "expo start --ios",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "web:build": "expo export --platform web --output-dir dist"
   },
   "dependencies": {
     "expo": "~54.0.0",
