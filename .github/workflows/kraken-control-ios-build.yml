@@ -31,14 +31,20 @@ jobs:
       - name: Install mobile dependencies
         working-directory: kraken-control
         run: npm install
-      - name: Validate Expo project
+      - name: Link or create EAS project
         working-directory: kraken-control
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
           npx eas-cli@latest whoami
+          npx eas-cli@latest init --non-interactive
+      - name: Validate Expo project
+        working-directory: kraken-control
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
           npx expo-doctor
-          node -e 'const c=require("./app.json").expo; if(!c.extra?.eas?.projectId) { console.error("EAS project is not linked. Run eas init locally and commit the generated projectId in app.json."); process.exit(1) }'
+          node -e 'const c=require("./app.json").expo; if(!c.extra?.eas?.projectId) { console.error("EAS project linking failed: extra.eas.projectId is missing."); process.exit(1) }'
       - name: Build iOS with EAS
         working-directory: kraken-control
         env:
