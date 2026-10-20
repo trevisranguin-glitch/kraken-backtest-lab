@@ -17,6 +17,13 @@
       "eas": {
         "projectId": "c43e239e-7676-4b47-9305-e6c07638582c"
       }
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "experiments": {
+      "baseUrl": "/kraken-backtest-lab"
     }
   }
 }
