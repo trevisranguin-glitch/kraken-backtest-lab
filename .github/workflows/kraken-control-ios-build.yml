@@ -43,7 +43,7 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
           npx eas-cli@latest whoami
-          npx eas-cli@latest init --non-interactive
+          npx eas-cli@latest init --account trxxxqs --non-interactive
       - name: Validate Expo project
         working-directory: kraken-control
         env:
