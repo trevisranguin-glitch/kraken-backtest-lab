@@ -1,7 +1,7 @@
 import React, {useState} from "react";
 import {SafeAreaView,ScrollView,View,Text,TextInput,Pressable,StyleSheet} from "react-native";
 import {StatusBar} from "expo-status-bar";
-const API=(process.env.EXPO_PUBLIC_API_BASE_URL||"https://kraken-control-staging.trevisranguin.workers.dev").replace(/\/$/,"");
+const API=(process.env.EXPO_PUBLIC_API_BASE_URL||"https://kraken-control-staging.trevisr.workers.dev").replace(/\/$/,"");
 export default function App(){
  const [status,setStatus]=useState<any>(null),[question,setQuestion]=useState(""),[answer,setAnswer]=useState("API de staging configurée. Saisis ton jeton de contrôle pour te connecter."),[token,setToken]=useState(""),[busy,setBusy]=useState(false);
  async function request(path:string,body?:any){if(!API)throw Error("API de staging non configurée.");if(!token.trim())throw Error("Saisis le jeton de contrôle fourni pour l’API de staging.");const r=await fetch(API+path,{method:body?"POST":"GET",headers:{"Content-Type":"application/json",Authorization:"Bearer "+token.trim()},...(body?{body:JSON.stringify(body)}:{})});const d=await r.json();if(!r.ok)throw Error(d.error==="UNAUTHORIZED"?"Jeton invalide.":d.error||"Erreur "+r.status);return d}
