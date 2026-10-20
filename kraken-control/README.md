@@ -9,6 +9,13 @@ Expo / React Native iPhone dashboard for the Kraken paper-trading system.
 - API: '/api/status', '/api/chat', '/api/repair/preview' (bearer token required)
 - Dedicated KV: 'kraken-control-staging-data' ('e6bd3ec212d841ad8d1e187de0395072')
 
+## Token handling
+- The bearer control token is entered once in Settings; the app restores it on later launches where storage persists.
+- Native app: uses `expo-secure-store` (device secure storage).
+- Web: uses `sessionStorage`, limited to the current browser tab session; it is not a server-side credential and is cleared when that session ends.
+- The token is never compiled into `EXPO_PUBLIC_*`, source code, or the chat log. Use only the staging control token.
+- First-time sign-in still requires a token. Fully automatic identity-based sign-in requires a separate authenticated login layer; never expose the server secret to make setup appear automatic.
+
 ## Safety
 - Paper mode only. No real orders, withdrawals, or live-execution toggle.
 - Separate staging Worker and KV; production Worker and production KV are untouched.
@@ -42,6 +49,7 @@ The build workflow checks the Expo token, verifies that the project is linked, r
 - 'OPENAI_API_KEY': optional, server-side only. Without it, chat uses a safe diagnostic fallback.
 
 ## Validation
+- Cloudflare Pages build pipeline now runs `npm run typecheck` before `npm run web:build` to catch TypeScript errors before deployment.
 - Worker tests, Worker TypeScript checks, mobile TypeScript, Expo Doctor, and the staging health check passed in GitHub Actions on commit 'b61e58729c9e710967d53518cc9b1e293bbde533'.
 - Staging Worker deployed with dedicated KV and a server-side control token.
 - Production bot unchanged. No live trading, withdrawals, or production writes.
