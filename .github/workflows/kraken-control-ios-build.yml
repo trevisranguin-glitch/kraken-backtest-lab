@@ -21,6 +21,7 @@ permissions:
 jobs:
   ios-build:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -36,7 +37,7 @@ jobs:
           fi
       - name: Install mobile dependencies
         working-directory: kraken-control
-        run: npm install
+        run: npm install --no-audit --no-fund
       - name: Link or create EAS project
         working-directory: kraken-control
         env:
@@ -51,9 +52,9 @@ jobs:
         run: |
           npx expo-doctor
           node -e 'const c=require("./app.json").expo; if(!c.extra?.eas?.projectId) { console.error("EAS project linking failed: extra.eas.projectId is missing."); process.exit(1) }'
-      - name: Build iOS with EAS
+      - name: Submit iOS build to EAS
         working-directory: kraken-control
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           BUILD_PROFILE: ${{ inputs.profile || 'preview' }}
-        run: npx eas-cli@latest build --platform ios --profile "$BUILD_PROFILE" --non-interactive --wait
+        run: npx eas-cli@latest build --platform ios --profile "$BUILD_PROFILE" --non-interactive --no-wait
