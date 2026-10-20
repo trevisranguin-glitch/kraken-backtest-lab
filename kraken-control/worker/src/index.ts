@@ -5,7 +5,8 @@ const preflight=(origin:string|null)=>new Response(null,{status:origin===ALLOWED
 const safeEqual=(a:string,b:string)=>{if(a.length!==b.length)return false;let diff=0;for(let i=0;i<a.length;i++)diff|=a.charCodeAt(i)^b.charCodeAt(i);return diff===0;};
 export async function handle(request:Request,env:Env):Promise<Response>{
  const url=new URL(request.url),origin=request.headers.get("origin");
- if(request.method==="OPTIONS")return preflight(origin);\n if(url.pathname==="/health")return json({ok:true,mode:"PAPER_ONLY"},200,origin||undefined);
+ if(request.method==="OPTIONS")return preflight(origin);
+ if(url.pathname==="/health")return json({ok:true,mode:"PAPER_ONLY"},200,origin||undefined);
  if(!url.pathname.startsWith("/api/"))return json({error:"NOT_FOUND"},404,origin||undefined);
  const auth=request.headers.get("authorization")||"";
  if(!env.CONTROL_TOKEN||!auth.startsWith("Bearer ")||!safeEqual(auth.slice(7),env.CONTROL_TOKEN))return json({error:"UNAUTHORIZED"},401,origin||undefined);
