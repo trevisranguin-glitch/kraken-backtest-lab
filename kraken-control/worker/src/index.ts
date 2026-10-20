@@ -4,8 +4,8 @@ const json=(data:unknown,status=200,origin?:string)=>new Response(JSON.stringify
 const preflight=(origin:string|null)=>new Response(null,{status:origin===ALLOWED_ORIGIN?204:403,headers:{"vary":"Origin",...(origin===ALLOWED_ORIGIN?{"access-control-allow-origin":ALLOWED_ORIGIN,"access-control-allow-methods":"GET, POST, OPTIONS","access-control-allow-headers":"Authorization, Content-Type","access-control-max-age":"86400"}:{})}});
 const safeEqual=(a:string,b:string)=>{if(a.length!==b.length)return false;let diff=0;for(let i=0;i<a.length;i++)diff|=a.charCodeAt(i)^b.charCodeAt(i);return diff===0;};
 export async function handle(request:Request,env:Env):Promise<Response>{
- const url=new URL(request.url);
- if(url.pathname==="/health")return json({ok:true,mode:"PAPER_ONLY"});
+ const url=new URL(request.url),origin=request.headers.get("origin");
+ if(request.method==="OPTIONS")return preflight(origin);\n if(url.pathname==="/health")return json({ok:true,mode:"PAPER_ONLY"},200,origin||undefined);
  if(!url.pathname.startsWith("/api/"))return json({error:"NOT_FOUND"},404,origin||undefined);
  const auth=request.headers.get("authorization")||"";
  if(!env.CONTROL_TOKEN||!auth.startsWith("Bearer ")||!safeEqual(auth.slice(7),env.CONTROL_TOKEN))return json({error:"UNAUTHORIZED"},401,origin||undefined);
