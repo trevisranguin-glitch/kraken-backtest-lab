@@ -1,0 +1,50 @@
+name: Kraken Control CI
+on:
+  pull_request:
+    paths:
+      - "kraken-control/**"
+      - ".devcontainer/**"
+      - ".github/workflows/kraken-control-ci.yml"
+  push:
+    branches: ["feature/kraken-control-mvp"]
+    paths:
+      - "kraken-control/**"
+      - ".devcontainer/**"
+      - ".github/workflows/kraken-control-ci.yml"
+jobs:
+  worker-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: kraken-control/worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm test
+      - run: npm run typecheck
+  mobile-typecheck:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: kraken-control
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npx tsc --noEmit
+      - name: Validate Expo project configuration
+        run: npx expo-doctor
+  staging-health-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check staging health endpoint
+        run: |
+          set -euo pipefail
+          response="$(curl --fail --silent --show-error --max-time 15 https://kraken-control-staging.trevisranguin.workers.dev/health)"
+          echo "$response"
+          echo "$response" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const d=JSON.parse(s);if(d.ok!==true||d.mode!=="PAPER_ONLY")process.exit(1)})'

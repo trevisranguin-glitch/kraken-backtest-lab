@@ -1,0 +1,10 @@
+name = "kraken-control-staging"
+main = "src/index.ts"
+compatibility_date = "2026-10-18"
+
+[[kv_namespaces]]
+binding = "DATA"
+id = "e6bd3ec212d841ad8d1e187de0395072"
+
+[vars]
+APP_MODE = "PAPER_ONLY"

@@ -1,0 +1,52 @@
+name: Kraken Control iOS Build
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: EAS build profile
+        required: true
+        type: choice
+        options:
+          - preview
+          - production
+        default: preview
+permissions:
+  contents: read
+jobs:
+  ios-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Require Expo token
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::Add EXPO_TOKEN in repository Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+      - name: Install mobile dependencies
+        working-directory: kraken-control
+        run: npm install
+      - name: Link or create EAS project
+        working-directory: kraken-control
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          npx eas-cli@latest whoami
+          npx eas-cli@latest init --non-interactive
+      - name: Validate Expo project
+        working-directory: kraken-control
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          npx expo-doctor
+          node -e 'const c=require("./app.json").expo; if(!c.extra?.eas?.projectId) { console.error("EAS project linking failed: extra.eas.projectId is missing."); process.exit(1) }'
+      - name: Build iOS with EAS
+        working-directory: kraken-control
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: npx eas-cli@latest build --platform ios --profile "${{ inputs.profile }}" --non-interactive --wait
