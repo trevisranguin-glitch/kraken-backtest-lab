@@ -7,6 +7,6 @@
     "19000": { "label": "Expo", "onAutoForward": "notify" },
     "19001": { "label": "Expo LAN", "onAutoForward": "notify" }
   },
-  "postCreateCommand": "cd kraken-control && npm install && npx expo-doctor",
+  "postCreateCommand": "cd kraken-control && npm install && npm run typecheck && npx expo-doctor",
   "customizations": { "vscode": { "extensions": ["expo.vscode-expo-tools"] } }
 }
