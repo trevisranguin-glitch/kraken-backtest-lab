@@ -10,6 +10,12 @@ on:
           - preview
           - production
         default: preview
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/kraken-control-ios-build.yml'
+      - 'kraken-control/**'
 permissions:
   contents: read
 jobs:
@@ -49,4 +55,5 @@ jobs:
         working-directory: kraken-control
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: npx eas-cli@latest build --platform ios --profile "${{ inputs.profile }}" --non-interactive --wait
+          BUILD_PROFILE: ${{ inputs.profile || 'preview' }}
+        run: npx eas-cli@latest build --platform ios --profile "$BUILD_PROFILE" --non-interactive --wait
