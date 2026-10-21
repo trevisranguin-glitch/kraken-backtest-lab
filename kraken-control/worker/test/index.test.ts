@@ -1,8 +1,20 @@
 import {describe,it,expect} from "vitest";
-import {handle} from "../src/index";
+import {handle,runScheduledHealth} from "../src/index";
 function env(values:Record<string,string>={},token="test-token"):any{return {CONTROL_TOKEN:token,APP_MODE:"PAPER_ONLY",DATA:{get:async(k:string)=>values[k]??null,put:async()=>{throw Error("write must not occur in preview test")},delete:async()=>{throw Error("delete must not occur")}}};}
 const req=(path:string,method="GET",token="test-token",body?:unknown)=>new Request("https://staging.invalid"+path,{method,headers:{authorization:"Bearer "+token,"content-type":"application/json"},...(body?{body:JSON.stringify(body)}:{})});
 describe("Kraken Control staging API",()=>{
+ it("persists scheduled health journal and fails closed if KV writes fail",async()=>{
+  const values:Record<string,string>={};
+  const good:any={APP_MODE:"PAPER_ONLY",DATA:{get:async(k:string)=>values[k]??null,put:async(k:string,v:string)=>{values[k]=v;},delete:async()=>{}}};
+  const now=new Date("2026-10-21T03:00:00.000Z");
+  const result:any=await runScheduledHealth(good,now);
+  expect(result).toMatchObject({status:"OK",ok:true,mode:"PAPER_ONLY",executionEnabled:false});
+  expect(JSON.parse(values["ops:health:latest"])).toMatchObject({timestamp:now.toISOString(),status:"OK"});
+  expect(JSON.parse(values["ops:health:journal:"+now.getTime()])).toMatchObject({ok:true,executionEnabled:false});
+  const broken:any={APP_MODE:"PAPER_ONLY",DATA:{get:async()=>null,put:async()=>{throw Error("KV write failed");}}};
+  const failed:any=await runScheduledHealth(broken,now);
+  expect(failed).toMatchObject({status:"JOURNAL_WRITE_FAILED",ok:false,executionEnabled:false});
+ });
  it("returns a public health check without secrets",async()=>{const r=await handle(new Request("https://x/health"),env());expect(r.status).toBe(200);expect(await r.json()).toMatchObject({ok:true,mode:"PAPER_ONLY"});});
  it("reports KV and paper-mode health checks and fails closed",async()=>{const good=await handle(new Request("https://x/health"),env());expect(await good.json()).toMatchObject({ok:true,mode:"PAPER_ONLY",checks:{kv:"ok",paperOnly:true}});const broken=env();broken.DATA.get=async()=>{throw Error("KV unavailable")};const badKv=await handle(new Request("https://x/health"),broken);expect(badKv.status).toBe(503);expect(await badKv.json()).toMatchObject({ok:false,checks:{kv:"error",paperOnly:true}});const wrongMode=env();wrongMode.APP_MODE="LIVE";const badMode=await handle(new Request("https://x/health"),wrongMode);expect(badMode.status).toBe(503);expect(await badMode.json()).toMatchObject({ok:false,mode:"LIVE",checks:{paperOnly:false}});});
  it("rejects missing/invalid token",async()=>{expect((await handle(req("/api/status","GET","wrong"),env())).status).toBe(401);expect((await handle(req("/api/status","GET","test-tokem"),env())).status).toBe(401);});
