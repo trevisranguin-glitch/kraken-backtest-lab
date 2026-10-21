@@ -33,4 +33,16 @@ export async function handle(request:Request,env:Env):Promise<Response>{
  }
  return json({error:"NOT_FOUND"},404,origin||undefined);
 }
-export default {fetch:handle};
+export async function runScheduledHealth(env:Env,now=new Date()):Promise<Record<string,unknown>>{
+ let kv="ok";
+ try{await env.DATA.get("ops:health:probe");}catch{kv="error";}
+ const mode=env.APP_MODE||"UNSET",paperOnly=mode==="PAPER_ONLY";
+ const result:Record<string,any>={timestamp:now.toISOString(),status:kv==="ok"&&paperOnly?"OK":"DEGRADED",ok:kv==="ok"&&paperOnly,mode,checks:{kv,paperOnly},executionEnabled:false};
+ try{
+  const ttl=2592000;
+  await env.DATA.put("ops:health:latest",JSON.stringify(result),{expirationTtl:ttl});
+  await env.DATA.put("ops:health:journal:"+now.getTime(),JSON.stringify(result),{expirationTtl:ttl});
+ }catch{result.status="JOURNAL_WRITE_FAILED";result.ok=false;}
+ return result;
+}
+export default {fetch:handle,scheduled(_controller:ScheduledController,env:Env,ctx:ExecutionContext){ctx.waitUntil(runScheduledHealth(env));}};
