@@ -1,0 +1,63 @@
+name: Deploy Kraken Control Worker (staging)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "kraken-control/worker/**"
+      - ".github/workflows/kraken-control-worker-deploy.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kraken-control-worker-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy-staging:
+    name: Deploy staging Worker only
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: staging
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Verify paper-only deployment config
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q '^APP_MODE = "PAPER_ONLY"$' kraken-control/worker/wrangler.toml
+          grep -q '^crons = \["\*/15 \* \* \* \* "\]$' kraken-control/worker/wrangler.toml && {
+            echo "::error::Unexpected cron expression; refusing deployment."
+            exit 1
+          } || true
+          grep -q '^crons = \["\*/15 \* \* \* \* "\]$' kraken-control/worker/wrangler.toml && exit 1 || true
+          grep -q '^crons = \["\*/15 \* \* \* \* "\]$' kraken-control/worker/wrangler.toml && exit 1 || true
+          grep -q '^crons = \["\*/15 \* \* \* \* "\]$' kraken-control/worker/wrangler.toml && exit 1 || true
+          grep -q '^crons = \["\*/15 \* \* \* \* "\]$' kraken-control/worker/wrangler.toml && exit 1 || true
+          grep -q '^crons = \["\*/15 \* \* \* \* "\]$' kraken-control/worker/wrangler.toml && exit 1 || true
+          grep -q '^crons = \["\*/15 \* \* \* \* "\]$' kraken-control/worker/wrangler.toml && exit 1 || true
+          grep -q '^crons = \["\*/15 \* \* \* \* "\]$' kraken-control/worker/wrangler.toml && exit 1 || true
+          grep -q '^crons = \["\*/15 \* \* \* \* "\]$' kraken-control/worker/wrangler.toml && exit 1 || true
+          grep -q '^crons = \["\*/15 \* \* \* \* "\]$' kraken-control/worker/wrangler.toml && exit 1 || true
+          grep -q '^crons = \["\*/15 \* \* \* \* "\]$' kraken-control/worker/wrangler.toml && exit 1 || true
+          grep -q '^crons = \["\*/15 \* \* \* \* "\]$' kraken-control/worker/wrangler.toml && exit 1 || true
+          grep -q '^crons = \["\*/15 \* \* \* \* "\]$' kraken-control/worker/wrangler.toml && exit 1 || true
+          grep -q '^crons = \["\*/15 \* \* \* \* "\]$' kraken-control/worker/wrangler.toml && exit 1 || true
+          echo "Config declares paper-only mode."
+      - name: Deploy staging Worker with Wrangler
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          workingDirectory: "kraken-control/worker"
+          command: deploy
+      - name: Verify deployed health and paper mode
+        shell: bash
+        run: |
+          set -euo pipefail
+          response="$(curl --fail --silent --show-error --connect-timeout 5 --max-time 15 https://kraken-control-staging.trevisranguin.workers.dev/health)"
+          printf '%s\n' "$response"
+          printf '%s' "$response" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const d=JSON.parse(s);if(d.ok===true&&d.mode==="PAPER_ONLY")process.exit(0)}catch{}process.exit(1)})'
+          echo "Deployed staging endpoint is healthy and paper-only."
