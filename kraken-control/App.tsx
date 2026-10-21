@@ -2,10 +2,23 @@ import React,{useCallback,useEffect,useMemo,useState} from "react";
 import {SafeAreaView,ScrollView,View,Text,TextInput,Pressable,StyleSheet,Platform} from "react-native";
 import * as SecureStore from "expo-secure-store";
 import {StatusBar} from "expo-status-bar";
-const API=(process.env.EXPO_PUBLIC_API_BASE_URL||"https://kraken-control-staging.trevisr.workers.dev").replace(/\/$/,"");
+const API=(process.env.EXPO_PUBLIC_API_BASE_URL||"https://kraken-control-staging.trevisranguin.workers.dev").replace(/\/$/,"");
 const C={bg:"#080B12",panel:"#121925",line:"#273346",text:"#F3F6FB",muted:"#9AA6B8",green:"#A8F078",amber:"#F2C66D",red:"#FF7777",blue:"#86B9FF"};
 type Tab="Vue"|"Journal"|"Assistant"|"Réglages";
 type EventItem={id:string,title:string,detail:string,time:string,tone:"ok"|"warn"|"info"};
+
+async function fetchRetry(input: RequestInfo | URL, init?: RequestInit, attempts=3): Promise<Response> {
+ let lastError: unknown;
+ for(let attempt=0;attempt<attempts;attempt++){
+  try{
+   const response=await fetch(input,init);
+   if(response.status<500||attempt===attempts-1)return response;
+   lastError=new Error("Serveur temporairement indisponible (HTTP "+response.status+")");
+  }catch(error){lastError=error}
+  await new Promise(resolve=>setTimeout(resolve,400*Math.pow(2,attempt)));
+ }
+ throw lastError instanceof Error?lastError:new Error("Connexion indisponible après plusieurs tentatives");
+}
 export default function App(){
  const [tab,setTab]=useState<Tab>("Vue"),[token,setToken]=useState(""),[tokenReady,setTokenReady]=useState(false),[showToken,setShowToken]=useState(false),[health,setHealth]=useState<any>(null),[status,setStatus]=useState<any>(null),[busy,setBusy]=useState(""),[error,setError]=useState(""),[lastRefresh,setLastRefresh]=useState(""),[question,setQuestion]=useState(""),[answer,setAnswer]=useState("Connecte-toi à l’API de staging pour demander une analyse. Les actions de trading réel restent désactivées."),[preview,setPreview]=useState<any>(null);
  const [events,setEvents]=useState<EventItem[]>([{id:"init",title:"Session initialisée",detail:"Interface en mode de contrôle isolé.",time:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),tone:"info"}]);
@@ -13,19 +26,19 @@ export default function App(){
  useEffect(()=>{if(!tokenReady)return;try{if(Platform.OS==="web"){if(token)window.sessionStorage.setItem("kraken-control-token",token);else window.sessionStorage.removeItem("kraken-control-token")}else{if(token)void SecureStore.setItemAsync("kraken-control-token",token);else void SecureStore.deleteItemAsync("kraken-control-token")}}catch{}},[token,tokenReady]);
 
  const log=useCallback((title:string,detail:string,tone:EventItem["tone"]="info")=>setEvents(a=>[{id:Date.now().toString(),title,detail,time:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),tone},...a].slice(0,50)),[]);
- const request=useCallback(async(path:string,body?:any)=>{if(!token.trim())throw Error("Jeton de contrôle de staging requis. Va dans Réglages.");const r=await fetch(API+path,{method:body?"POST":"GET",headers:{"Content-Type":"application/json",Authorization:"Bearer "+token.trim()},...(body?{body:JSON.stringify(body)}:{})});const d=await r.json().catch(()=>({error:"Réponse serveur illisible"}));if(!r.ok)throw Error(r.status===401?"Jeton refusé.":d.error||"Erreur API "+r.status);return d},[token]);
- const refresh=useCallback(async()=>{setBusy("refresh");setError("");try{const h=await fetch(API+"/health").then(async r=>{if(!r.ok)throw Error("API santé : HTTP "+r.status);return r.json()});setHealth(h);if(h.mode!=="PAPER_ONLY")throw Error("Sécurité : le serveur ne confirme pas PAPER_ONLY.");const d=await request("/api/status");if(d.liveExecution!==false||d.executionEnabled!==false)throw Error("Sécurité : désactivation des ordres réels non confirmée.");setStatus(d);setLastRefresh(new Date().toLocaleString());setPreview(null);log("Diagnostic réussi","Mode PAPER_ONLY et garde-fous confirmés.","ok")}catch(e:any){setError(e?.message||"Diagnostic échoué");log("Diagnostic non confirmé",e?.message||"Erreur inconnue","warn")}finally{setBusy("")}},[request,log]);
+ const request=useCallback(async(path:string,body?:any)=>{if(!token.trim())throw Error("Jeton de contrôle de staging requis. Va dans Réglages.");const r=await fetchRetry(API+path,{method:body?"POST":"GET",headers:{"Content-Type":"application/json",Authorization:"Bearer "+token.trim()},...(body?{body:JSON.stringify(body)}:{})});const d=await r.json().catch(()=>({error:"Réponse serveur illisible"}));if(!r.ok)throw Error(r.status===401?"Jeton refusé.":d.error||"Erreur API "+r.status);return d},[token]);
+ const refresh=useCallback(async()=>{setBusy("refresh");setError("");try{const h=await fetchRetry(API+"/health").then(async r=>{if(!r.ok)throw Error("API santé : HTTP "+r.status);return r.json()});setHealth(h);if(h.mode!=="PAPER_ONLY")throw Error("Sécurité : le serveur ne confirme pas PAPER_ONLY.");const d=await request("/api/status");if(d.liveExecution!==false||d.executionEnabled!==false)throw Error("Sécurité : désactivation des ordres réels non confirmée.");setStatus(d);setLastRefresh(new Date().toLocaleString());setPreview(null);log("Diagnostic réussi","Mode PAPER_ONLY et garde-fous confirmés.","ok")}catch(e:any){setError(e?.message||"Diagnostic échoué");log("Diagnostic non confirmé",e?.message||"Erreur inconnue","warn")}finally{setBusy("")}},[request,log]);
  useEffect(()=>{if(tokenReady&&token.trim())void refresh()},[tokenReady,token,refresh]);
  useEffect(()=>{
   if(!tokenReady||!token.trim())return;
   let active=true;
-  const poll=async()=>{try{const h=await fetch(API+"/health").then(async r=>{if(!r.ok)throw Error("API santé : HTTP "+r.status);return r.json()});if(h.mode!=="PAPER_ONLY")throw Error("Le serveur ne confirme plus PAPER_ONLY.");const d=await request("/api/status");if(d.liveExecution!==false||d.executionEnabled!==false)throw Error("Les garde-fous ne sont plus confirmés.");if(active){setHealth(h);setStatus(d);setLastRefresh(new Date().toLocaleString());setError("")}}catch(e:any){if(active)setError(e?.message||"Surveillance automatique en échec")}};
+  const poll=async()=>{try{const h=await fetchRetry(API+"/health").then(async r=>{if(!r.ok)throw Error("API santé : HTTP "+r.status);return r.json()});if(h.mode!=="PAPER_ONLY")throw Error("Le serveur ne confirme plus PAPER_ONLY.");const d=await request("/api/status");if(d.liveExecution!==false||d.executionEnabled!==false)throw Error("Les garde-fous ne sont plus confirmés.");if(active){setHealth(h);setStatus(d);setLastRefresh(new Date().toLocaleString());setError("")}}catch(e:any){if(active)setError(e?.message||"Surveillance automatique en échec")}};
   const timer=setInterval(()=>{void poll()},60000);
   return()=>{active=false;clearInterval(timer)};
  },[tokenReady,token,request]);
  const previewAction=useCallback(async(action:string)=>{setBusy(action);setError("");try{const d=await request("/api/repair/preview",{action});setPreview(d);log("Prévisualisation prête",action+" — aucune mutation exécutée.","info")}catch(e:any){setError(e?.message||"Action impossible");log("Prévisualisation refusée",e?.message||"Erreur inconnue","warn")}finally{setBusy("")}},[request,log]);
  const ask=useCallback(async()=>{const q=question.trim();if(!q||busy)return;setQuestion("");setBusy("chat");setAnswer("Analyse en cours…");try{const d=await request("/api/chat",{message:q});setAnswer(d.answer||"Réponse vide.");log("Assistant consulté",q.slice(0,90),"ok")}catch(e:any){setAnswer(e?.message||"Assistant indisponible");log("Assistant indisponible",e?.message||"Erreur","warn")}finally{setBusy("")}},[question,busy,request,log]);
- useEffect(()=>{let active=true;fetch(API+"/health").then(r=>r.json()).then(d=>{if(active)setHealth(d)}).catch(()=>{});return()=>{active=false}},[]);
+ useEffect(()=>{let active=true;fetchRetry(API+"/health").then(r=>r.json()).then(d=>{if(active)setHealth(d)}).catch(()=>{});return()=>{active=false}},[]);
  const safe=!!status&&status.liveExecution===false&&status.executionEnabled===false&&health?.mode==="PAPER_ONLY";
  const cp=status?.checkpoint||{};
  const metrics=useMemo(()=>[{label:"Capital simulé",value:cp.equity==null?"—":Number(cp.equity).toLocaleString("fr-FR",{style:"currency",currency:"EUR"}),sub:"checkpoint serveur"},{label:"Performance",value:cp.returnPct==null?"—":Number(cp.returnPct).toFixed(2).replace(".",",")+"%",sub:"simulation"},{label:"Observations",value:cp.observations==null?"—":String(cp.observations),sub:"points de données"},{label:"Frais simulés",value:cp.fees==null?"—":Number(cp.fees).toLocaleString("fr-FR",{style:"currency",currency:"EUR"}),sub:"aucun frais réel"}],[cp]);
