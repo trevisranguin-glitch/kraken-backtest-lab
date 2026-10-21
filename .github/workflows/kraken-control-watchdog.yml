@@ -1,0 +1,58 @@
+name: Kraken Control Watchdog
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kraken-control-watchdog
+  cancel-in-progress: false
+
+jobs:
+  staging-health:
+    name: Verify staging health (paper-only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Probe health endpoint with bounded retries
+        shell: bash
+        run: |
+          set -euo pipefail
+          endpoint="https://kraken-control-staging.trevisranguin.workers.dev/health"
+          ok=0
+          for attempt in 1 2 3; do
+            echo "Health probe attempt ${attempt}/3"
+            if response="$(curl --fail --silent --show-error --connect-timeout 5 --max-time 15 "$endpoint" 2>&1)"; then
+              printf '%s\n' "$response"
+              if printf '%s' "$response" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const d=JSON.parse(s);if(d.ok===true&&d.mode==="PAPER_ONLY")process.exit(0)}catch{}process.exit(1)})'; then
+                ok=1
+                break
+              fi
+              echo "Health payload invalid or mode is not PAPER_ONLY."
+            else
+              echo "$response"
+            fi
+            if [ "$attempt" -lt 3 ]; then sleep 5; fi
+          done
+          if [ "$ok" -ne 1 ]; then
+            echo "::error::Kraken staging health check failed after 3 attempts. No repair or trading action was attempted."
+            exit 1
+          fi
+          echo "Health check passed: endpoint reachable and mode is PAPER_ONLY."
+      - name: Record run summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Kraken Control Watchdog"
+            echo "- Endpoint: staging /health"
+            echo "- Expected mode: `PAPER_ONLY`"
+            echo "- Automated repair: disabled"
+            echo "- Live trading: not touched"
+            echo "- Timestamp (UTC): $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            echo "- Result: ${{ job.status }}"
+          } >> "$GITHUB_STEP_SUMMARY"
