@@ -27,6 +27,9 @@ describe("Kraken Control staging API",()=>{
   const good=await handle(new Request("https://x/api/status",{headers:{origin:"https://kraken-control-web.pages.dev",authorization:"Bearer wrong"}}),env());
   expect(good.status).toBe(401);
   expect(good.headers.get("access-control-allow-origin")).toBe("https://kraken-control-web.pages.dev");
+  const goodPages=await handle(new Request("https://x/api/status",{headers:{origin:"https://trevisranguin-glitch.github.io",authorization:"Bearer wrong"}}),env());
+  expect(goodPages.status).toBe(401);
+  expect(goodPages.headers.get("access-control-allow-origin")).toBe("https://trevisranguin-glitch.github.io");
   const bad=await handle(new Request("https://x/api/status",{headers:{origin:"https://evil.example",authorization:"Bearer wrong"}}),env());
   expect(bad.headers.get("access-control-allow-origin")).toBeNull();
  });
