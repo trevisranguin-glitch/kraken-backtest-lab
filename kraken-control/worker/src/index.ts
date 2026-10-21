@@ -1,6 +1,6 @@
 export interface Env { DATA: KVNamespace; CONTROL_TOKEN: string; OPENAI_API_KEY?: string; APP_MODE?: string }
 const ALLOWED_ORIGINS=new Set(["https://kraken-control-web.pages.dev","https://trevisranguin-glitch.github.io"]);
-const json=(data:unknown,status=200,origin?:string)=>new Response(JSON.stringify(data),{status,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store","vary":"Origin",...(origin!==null&&ALLOWED_ORIGINS.has(origin)?{"access-control-allow-origin":origin}:{} )}});
+const json=(data:unknown,status=200,origin?:string)=>new Response(JSON.stringify(data),{status,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store","vary":"Origin",...(origin!==undefined&&origin!==null&&ALLOWED_ORIGINS.has(origin)?{"access-control-allow-origin":origin}:{} )}});
 const preflight=(origin:string|null)=>new Response(null,{status:origin!==null&&ALLOWED_ORIGINS.has(origin)?204:403,headers:{"vary":"Origin",...(origin!==null&&ALLOWED_ORIGINS.has(origin)?{"access-control-allow-origin":origin,"access-control-allow-methods":"GET, POST, OPTIONS","access-control-allow-headers":"Authorization, Content-Type","access-control-max-age":"86400"}:{})}});
 const safeEqual=(a:string,b:string)=>{if(a.length!==b.length)return false;let diff=0;for(let i=0;i<a.length;i++)diff|=a.charCodeAt(i)^b.charCodeAt(i);return diff===0;};
 export async function handle(request:Request,env:Env):Promise<Response>{
