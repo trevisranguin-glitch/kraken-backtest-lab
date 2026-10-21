@@ -28,25 +28,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -q '^APP_MODE = "PAPER_ONLY"$' kraken-control/worker/wrangler.toml
-          grep -q '^crons = \["\*/15 \* \* \* \* "\]$' kraken-control/worker/wrangler.toml && {
-            echo "::error::Unexpected cron expression; refusing deployment."
-            exit 1
-          } || true
-          grep -q '^crons = \["\*/15 \* \* \* \* "\]$' kraken-control/worker/wrangler.toml && exit 1 || true
-          grep -q '^crons = \["\*/15 \* \* \* \* "\]$' kraken-control/worker/wrangler.toml && exit 1 || true
-          grep -q '^crons = \["\*/15 \* \* \* \* "\]$' kraken-control/worker/wrangler.toml && exit 1 || true
-          grep -q '^crons = \["\*/15 \* \* \* \* "\]$' kraken-control/worker/wrangler.toml && exit 1 || true
-          grep -q '^crons = \["\*/15 \* \* \* \* "\]$' kraken-control/worker/wrangler.toml && exit 1 || true
-          grep -q '^crons = \["\*/15 \* \* \* \* "\]$' kraken-control/worker/wrangler.toml && exit 1 || true
-          grep -q '^crons = \["\*/15 \* \* \* \* "\]$' kraken-control/worker/wrangler.toml && exit 1 || true
-          grep -q '^crons = \["\*/15 \* \* \* \* "\]$' kraken-control/worker/wrangler.toml && exit 1 || true
-          grep -q '^crons = \["\*/15 \* \* \* \* "\]$' kraken-control/worker/wrangler.toml && exit 1 || true
-          grep -q '^crons = \["\*/15 \* \* \* \* "\]$' kraken-control/worker/wrangler.toml && exit 1 || true
-          grep -q '^crons = \["\*/15 \* \* \* \* "\]$' kraken-control/worker/wrangler.toml && exit 1 || true
-          grep -q '^crons = \["\*/15 \* \* \* \* "\]$' kraken-control/worker/wrangler.toml && exit 1 || true
-          grep -q '^crons = \["\*/15 \* \* \* \* "\]$' kraken-control/worker/wrangler.toml && exit 1 || true
-          echo "Config declares paper-only mode."
+          grep -Fqx 'APP_MODE = "PAPER_ONLY"' kraken-control/worker/wrangler.toml
+          grep -Fqx 'crons = ["*/15 * * * *"]' kraken-control/worker/wrangler.toml
+          echo "Config declares paper-only mode and 15-minute cron."
       - name: Deploy staging Worker with Wrangler
         uses: cloudflare/wrangler-action@v3
         with:
