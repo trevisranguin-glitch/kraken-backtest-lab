@@ -16,6 +16,9 @@ describe("Kraken Control staging API",()=>{
   expect(allowed.status).toBe(204);
   expect(allowed.headers.get("access-control-allow-origin")).toBe("https://kraken-control-web.pages.dev");
   expect(allowed.headers.get("access-control-allow-headers")).toContain("Authorization");
+  const githubPages=await handle(new Request("https://x/api/status",{method:"OPTIONS",headers:{origin:"https://trevisranguin-glitch.github.io","access-control-request-method":"GET"}}),env());
+  expect(githubPages.status).toBe(204);
+  expect(githubPages.headers.get("access-control-allow-origin")).toBe("https://trevisranguin-glitch.github.io");
   const denied=await handle(new Request("https://x/api/status",{method:"OPTIONS",headers:{origin:"https://evil.example"}}),env());
   expect(denied.status).toBe(403);
   expect(denied.headers.get("access-control-allow-origin")).toBeNull();
