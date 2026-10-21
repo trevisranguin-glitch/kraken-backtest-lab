@@ -6,5 +6,8 @@ compatibility_date = "2026-10-18"
 binding = "DATA"
 id = "e6bd3ec212d841ad8d1e187de0395072"
 
+[triggers]
+crons = ["*/15 * * * *"]
+
 [vars]
 APP_MODE = "PAPER_ONLY"
