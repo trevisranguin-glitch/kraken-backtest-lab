@@ -19,11 +19,13 @@ jobs:
     timeout-minutes: 2
     steps:
       - name: Probe health endpoint with bounded retries
+        id: probe
         shell: bash
         run: |
-          set -euo pipefail
+          set -u
           endpoint="https://kraken-control-staging.trevisranguin.workers.dev/health"
           ok=0
+          response=""
           for attempt in 1 2 3; do
             echo "Health probe attempt ${attempt}/3"
             if response="$(curl --fail --silent --show-error --connect-timeout 5 --max-time 15 "$endpoint" 2>&1)"; then
@@ -38,21 +40,51 @@ jobs:
             fi
             if [ "$attempt" -lt 3 ]; then sleep 5; fi
           done
-          if [ "$ok" -ne 1 ]; then
+          mkdir -p watchdog-report
+          printf '%s' "$response" > watchdog-report/health-response.json
+          if [ "$ok" -eq 1 ]; then
+            echo "result=ok" >> "$GITHUB_OUTPUT"
+            echo "Health check passed: endpoint reachable and mode is PAPER_ONLY."
+          else
+            echo "result=degraded" >> "$GITHUB_OUTPUT"
             echo "::error::Kraken staging health check failed after 3 attempts. No repair or trading action was attempted."
             exit 1
           fi
-          echo "Health check passed: endpoint reachable and mode is PAPER_ONLY."
-      - name: Record run summary
+      - name: Record durable run report
         if: always()
         shell: bash
+        env:
+          PROBE_OUTCOME: ${{ steps.probe.outcome }}
+          PROBE_RESULT: ${{ steps.probe.outputs.result }}
         run: |
+          mkdir -p watchdog-report
+          timestamp="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          cat > watchdog-report/report.json <<EOF
+          {
+            "timestamp": "$timestamp",
+            "workflow": "Kraken Control Watchdog",
+            "endpoint": "staging /health",
+            "result": "${PROBE_RESULT:-unknown}",
+            "stepOutcome": "$PROBE_OUTCOME",
+            "expectedMode": "PAPER_ONLY",
+            "automatedRepair": false,
+            "liveTradingTouched": false
+          }
+          EOF
           {
             echo "## Kraken Control Watchdog"
+            echo "- Timestamp (UTC): $timestamp"
             echo "- Endpoint: staging /health"
             echo "- Expected mode: `PAPER_ONLY`"
+            echo "- Probe result: ${PROBE_RESULT:-unknown}"
             echo "- Automated repair: disabled"
             echo "- Live trading: not touched"
-            echo "- Timestamp (UTC): $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-            echo "- Result: ${{ job.status }}"
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: Archive health report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kraken-watchdog-report-${{ github.run_id }}
+          path: watchdog-report/
+          retention-days: 90
+          if-no-files-found: warn
