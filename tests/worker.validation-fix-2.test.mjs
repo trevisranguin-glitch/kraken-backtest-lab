@@ -11,7 +11,6 @@ function mockKrakenOHLC() {
     const close = 30000 + (250 - i) * 12 + Math.sin(i / 5) * 120;
     rows.push([String(Math.floor(t / 1000)), String(close - 10), String(close + 30), String(close - 35), String(close), '1', '100']);
   }
-  // Deliberately include the current, still-forming hourly candle.
   rows.push([String(Math.floor(currentBucket / 1000)), '33000', '33100', '32900', '33050', '1', '100']);
   return { error: [], result: { XXBTZUSD: rows, last: 'ignored' } };
 }
@@ -42,7 +41,8 @@ test('research excludes the currently forming OHLC candle', async () => {
     assert.equal(data.excludedOpenCandles, 1);
     assert.equal(data.bars, 250);
     assert.equal(data.intervalMinutes, 60);
-    assert.equal(data.outOfSample.validationStartIndex, undefined);
+    assert.equal(data.validationStartIndex, data.trainingBars);
+    assert.equal(data.validationBars, data.bars - data.trainingBars);
   } finally {
     globalThis.fetch = originalFetch;
   }
