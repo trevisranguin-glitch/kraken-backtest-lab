@@ -1,0 +1,31 @@
+name: Research worker tests
+
+on:
+  pull_request:
+    paths:
+      - 'worker.validation-fix-2.mjs'
+      - 'tests/**'
+      - '.github/workflows/research-tests.yml'
+  push:
+    branches:
+      - 'fix/ohlc-closed-candles-and-fees'
+    paths:
+      - 'worker.validation-fix-2.mjs'
+      - 'tests/**'
+      - '.github/workflows/research-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run regression tests
+        run: node --test tests/worker.validation-fix-2.test.mjs
