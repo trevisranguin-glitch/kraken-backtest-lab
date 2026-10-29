@@ -1,0 +1,55 @@
+const FEE=0.0026,MIN_BARS=180;
+const json=(d,s=200)=>new Response(JSON.stringify(d,null,2),{status:s,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','access-control-allow-origin':'*'}});
+function ema(a,p){const o=Array(a.length).fill(null);if(a.length<p)return o;let s=0;for(let i=0;i<p;i++)s+=a[i];let v=s/p;o[p-1]=v;const k=2/(p+1);for(let i=p;i<a.length;i++)o[i]=v=a[i]*k+v*(1-k);return o}
+function sim(b,f,sl,startIndex=0){
+ const c=b.map(x=>x.c),e=ema(c,f),z=ema(c,sl);
+ let cash=1,u=0,entryCapital=0,n=0,w=0,peak=1,dd=0;
+ const start=Math.max(2,startIndex);
+ for(let i=start;i<b.length;i++){
+  const was=e[i-2]!=null&&z[i-2]!=null&&e[i-2]>z[i-2];
+  const now=e[i-1]!=null&&z[i-1]!=null&&e[i-1]>z[i-1];
+  const p=b[i].o;
+  if(!u&&now&&!was){entryCapital=cash;u=cash*(1-FEE)/p;cash=0}
+  else if(u&&!now&&was){const proceeds=u*p*(1-FEE);cash=proceeds;u=0;n++;if(proceeds>entryCapital)w++;entryCapital=0}
+  // Equity is marked to estimated liquidation value while a position is open.
+  const v=cash+u*b[i].c*(u?1-FEE:1);
+  peak=Math.max(peak,v);dd=Math.max(dd,(peak-v)/peak)
+ }
+ const last=b[b.length-1].c;
+ const liquidationValue=u?u*last*(1-FEE):0;
+ const v=cash+liquidationValue;
+ if(u){n++;if(liquidationValue>entryCapital)w++}
+ return{returnPct:(v-1)*100,trades:n,winRatePct:n?w/n*100:0,maxDrawdownPct:dd*100}
+}
+async function candles(pair,interval){
+ const u=new URL('https://api.kraken.com/0/public/OHLC');u.searchParams.set('pair',pair);u.searchParams.set('interval',interval);
+ const r=await fetch(u,{headers:{accept:'application/json'}});if(!r.ok)throw Error('Kraken HTTP '+r.status);
+ const d=await r.json();if(d.error?.length)throw Error(d.error.join(', '));
+ const key=Object.keys(d.result||{}).find(k=>k!=='last');if(!key)throw Error('Paire non retournée par Kraken');
+ const intervalMs=interval*60000,now=Date.now();
+ const all=d.result[key].map(x=>({t:+x[0]*1000,o:+x[1],h:+x[2],l:+x[3],c:+x[4],v:+x[6]}));
+ // Kraken's final OHLC row is the currently forming candle. Keep only candles whose full interval has elapsed.
+ const bars=all.filter(x=>x.t+intervalMs<=now);
+ return{key,bars,excludedOpenCandles:all.length-bars.length}
+}
+export default{async fetch(req){
+ const u=new URL(req.url);
+ if(req.method==='OPTIONS')return new Response(null,{headers:{'access-control-allow-origin':'*','access-control-allow-methods':'GET,OPTIONS'}});
+ if(u.pathname==='/health')return json({ok:true,service:'kraken-research-lab',version:'validation-fix-2',mode:'read-only',executionEnabled:false,ordersSupported:false,feePerSidePct:FEE*100,now:new Date().toISOString()});
+ if(u.pathname!=='/research')return json({ok:false,error:'Use /health or /research?pair=XBTUSD&interval=1440'},404);
+ try{
+  const pair=(u.searchParams.get('pair')||'XBTUSD').toUpperCase(),interval=+(u.searchParams.get('interval')||1440);
+  if(!/^[A-Z0-9]{3,20}$/.test(pair))return json({ok:false,error:'Invalid pair'},400);
+  if(![60,240,1440].includes(interval))return json({ok:false,error:'Allowed intervals: 60, 240, 1440'},400);
+  const {key,bars,excludedOpenCandles}=await candles(pair,interval);
+  if(bars.length<MIN_BARS)return json({ok:false,error:'Insufficient closed-candle history',bars:bars.length,minimum:MIN_BARS,excludedOpenCandles},422);
+  const split=Math.floor(bars.length*.7),train=bars.slice(0,split);let best=null;
+  for(const f of [5,8,10,12,16,20])for(const s of [21,26,35,50,70])if(f<s&&train.length>s+10){
+   const q=sim(train,f,s);if(!best||q.returnPct>best.trainReturnPct)best={fast:f,slow:s,trainReturnPct:q.returnPct}
+  }
+  if(!best)return json({ok:false,error:'Insufficient training data'},422);
+  const out=sim(bars,best.fast,best.slow,split),test=bars.slice(split);
+  const bh=((test[test.length-1].c*(1-FEE))/(test[0].o*(1+FEE))-1)*100,full=sim(bars,best.fast,best.slow);
+  return json({ok:true,service:'kraken-research-lab',version:'validation-fix-2',mode:'read-only',executionEnabled:false,ordersSupported:false,pair,key,intervalMinutes:interval,bars:bars.length,excludedOpenCandles,from:new Date(bars[0].t).toISOString(),to:new Date(bars[bars.length-1].t).toISOString(),method:'Chronological 70/30 split; only fully closed OHLC candles; parameters selected on training segment; EMA warmed from past candles; validation PnL starts at split with flat initial position; next-bar-open fills; entry and exit fees included; open final positions marked at estimated liquidation value',feePerSidePct:FEE*100,trainingBars:split,validationBars:bars.length-split,validationStartIndex:split,selectedParameters:{emaFast:best.fast,emaSlow:best.slow,trainingReturnPct:best.trainReturnPct},outOfSample:{strategyReturnPct:out.returnPct,trades:out.trades,winRatePct:out.winRatePct,maxDrawdownPct:out.maxDrawdownPct,buyHoldReturnPct:bh,excessVsBuyHoldPct:out.returnPct-bh},fullWindowDiagnostic:{strategyReturnPct:full.returnPct,trades:full.trades,maxDrawdownPct:full.maxDrawdownPct},warning:'Exploratory only: one chronological split and estimated fees do not prove a durable edge. Spread/slippage are not modeled. No real or paper orders are sent.'})
+ }catch(e){return json({ok:false,service:'kraken-research-lab',mode:'read-only',executionEnabled:false,error:String(e.message||e)},502)}
+}};
