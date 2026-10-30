@@ -4,16 +4,19 @@ on:
     paths:
       - 'adaptive/**'
       - 'tests/adaptive-strategy-engine.test.mjs'
+      - 'tests/regime-engine.test.mjs'
       - 'tests/regime-competition.test.mjs'
       - 'tests/mean-reversion-study.test.mjs'
       - '.github/workflows/adaptive-strategy-tests.yml'
   push:
     branches:
       - 'research/adaptive-strategy-competition'
+      - 'research/regime-strategy-allocator'
       - 'research/mean-reversion-entry-study'
     paths:
       - 'adaptive/**'
       - 'tests/adaptive-strategy-engine.test.mjs'
+      - 'tests/regime-engine.test.mjs'
       - 'tests/regime-competition.test.mjs'
       - 'tests/mean-reversion-study.test.mjs'
       - '.github/workflows/adaptive-strategy-tests.yml'
