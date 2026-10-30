@@ -33,3 +33,23 @@ test("flat price history is classified as range after warmup",()=>{
   const out=detectMarketRegimes(bars(400,()=>100));
   assert.equal(out.regimes[399].regime,"RANGE");
 });
+
+test("persistent rising and falling trends receive directional labels",()=>{
+  const up=detectMarketRegimes(bars(500,i=>100+i*0.2)).regimes;
+  const down=detectMarketRegimes(bars(500,i=>200-i*0.2)).regimes;
+  assert.equal(up.at(-1).regime,"TREND_UP");
+  assert.equal(down.at(-1).regime,"TREND_DOWN");
+});
+
+test("a sudden volatility shock is classified using only prior volatility history",()=>{
+  const data=bars(400,()=>100);
+  data[399]={...data[399],o:100,h:130,l:70,c:100};
+  const out=detectMarketRegimes(data).regimes;
+  assert.equal(out[398].regime,"RANGE");
+  assert.equal(out[399].regime,"HIGH_VOLATILITY");
+});
+
+test("invalid classifier parameters are rejected",()=>{
+  assert.throws(()=>detectMarketRegimes(bars(),{efficiencyPeriod:0}),/efficiencyPeriod/);
+  assert.throws(()=>detectMarketRegimes(bars(),{volatilityWindow:5}),/volatilityWindow/);
+});
