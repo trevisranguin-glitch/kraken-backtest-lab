@@ -114,11 +114,23 @@ export function walkForward(bars, options = {}) {
     const meanDrawdown=windows.reduce((s,x)=>s+x.maxDrawdownPct,0)/windows.length;
     const positive=windows.filter(x=>x.returnPct>0).length;
     const beatBenchmark=windows.filter(x=>x.excessVsBuyHoldPct>0).length;
+    const activeWindows=windows.filter(x=>x.trades>0).length;
     const totalTrades=windows.reduce((s,x)=>s+x.trades,0);
-    // A candidate is not called robust merely for being profitable: it must also beat passive after costs.
-    const robust=positive>=Math.ceil(folds*0.75) && beatBenchmark>=Math.ceil(folds*0.75) && avg>0 && meanExcess>0 && totalTrades>=3;
-    const researchScore=meanExcess-0.5*meanDrawdown;
-    results[name]={windows,meanReturnPct:avg,meanExcessVsBuyHoldPct:meanExcess,meanMaxDrawdownPct:meanDrawdown,positiveWindows:positive,benchmarkWinningWindows:beatBenchmark,totalTrades,folds,researchScore,robust};
+    const activeExcess=windows.filter(x=>x.trades>0);
+    const meanActiveExcessVsBuyHoldPct=activeExcess.length
+      ? activeExcess.reduce((s,x)=>s+x.excessVsBuyHoldPct,0)/activeExcess.length
+      : null;
+    // Idle cash is not counted as a strategy win; a candidate must be active and profitable across folds.
+    const robust=positive>=Math.ceil(folds*0.75) &&
+      beatBenchmark>=Math.ceil(folds*0.75) &&
+      activeWindows>=Math.ceil(folds*0.75) &&
+      avg>0 && meanExcess>0 && totalTrades>=3;
+    // Primary score rewards actual net return and penalizes drawdown; excess is reported separately.
+    const researchScore=avg-0.5*meanDrawdown;
+    results[name]={windows,meanReturnPct:avg,meanExcessVsBuyHoldPct:meanExcess,
+      meanActiveExcessVsBuyHoldPct,meanMaxDrawdownPct:meanDrawdown,
+      positiveWindows:positive,benchmarkWinningWindows:beatBenchmark,
+      activeWindows,totalTrades,folds,researchScore,robust};
   }
   return {mode:"read-only-research",executionEnabled:false,ordersSupported:false,costModel:"fee + half-spread + slippage on each side",results};
 }
