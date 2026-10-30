@@ -34,3 +34,14 @@ test("regime labels use closed historical bars and all candidates stay in cash i
   assert.ok(Object.keys(out.regimeCounts).length>0);
   assert.ok(Object.values(out.results).every(x=>x.totalTrades>=0));
 });
+
+test("signal diagnostics expose buy and sell counts by the prior closed candle regime",()=>{
+  const bars=fixture();
+  const out=walkForwardRegimeCompetition(bars);
+  assert.equal(out.signalDiagnostics.executionEnabled,false);
+  for(const strategy of Object.values(out.signalDiagnostics.strategies)){
+    assert.ok(Number.isInteger(strategy.buy));
+    assert.ok(Number.isInteger(strategy.sell));
+    assert.ok(strategy.buy>=0&&strategy.sell>=0);
+  }
+});
