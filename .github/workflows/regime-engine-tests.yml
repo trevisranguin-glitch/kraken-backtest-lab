@@ -1,0 +1,27 @@
+name: Regime engine regression tests
+on:
+  pull_request:
+    paths:
+      - 'adaptive/**'
+      - 'tests/adaptive-strategy-engine.test.mjs'
+      - 'tests/regime-engine.test.mjs'
+      - '.github/workflows/regime-engine-tests.yml'
+  push:
+    branches:
+      - 'research/market-regime-engine'
+    paths:
+      - 'adaptive/**'
+      - 'tests/adaptive-strategy-engine.test.mjs'
+      - 'tests/regime-engine.test.mjs'
+      - '.github/workflows/regime-engine-tests.yml'
+permissions:
+  contents: read
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/adaptive-strategy-engine.test.mjs tests/regime-engine.test.mjs
