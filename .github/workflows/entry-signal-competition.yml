@@ -1,0 +1,43 @@
+name: Entry signal competition research
+on:
+  pull_request:
+    paths:
+      - 'adaptive/entry-signal-competition.mjs'
+      - 'adaptive/run-entry-signal-competition.mjs'
+      - 'tests/entry-signal-competition.test.mjs'
+      - '.github/workflows/entry-signal-competition.yml'
+  push:
+    branches:
+      - 'research/entry-signal-competition-v1'
+    paths:
+      - 'adaptive/entry-signal-competition.mjs'
+      - 'adaptive/run-entry-signal-competition.mjs'
+      - 'tests/entry-signal-competition.test.mjs'
+      - '.github/workflows/entry-signal-competition.yml'
+permissions:
+  contents: read
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/entry-signal-competition.test.mjs tests/accounting-engine.test.mjs
+  market-research:
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node adaptive/run-entry-signal-competition.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: entry-signal-competition-report
+          path: entry-signal-competition-report.json
+          if-no-files-found: ignore
+          retention-days: 14
