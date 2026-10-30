@@ -42,6 +42,13 @@ class HistoricalOHLCVTTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "inconsistent OHLC"):
                 inspect_csv(path, 240)
 
+    def test_30_minute_interval_supported(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = self.write_csv(Path(tmp) / "30m.csv", (0, 1800))
+            rows, metadata = inspect_csv(path, 30)
+            self.assertEqual(len(rows), 2)
+            self.assertEqual(metadata["interval_minutes"], 30)
+
     def test_missing_market_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = self.write_csv(Path(tmp) / "one.csv")
