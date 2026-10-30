@@ -4,11 +4,11 @@ on:
     paths:
       - 'adaptive/**'
       - 'tests/adaptive-strategy-engine.test.mjs'
-      - 'tests/regime-competition.test.mjs'
+      - 'tests/regime-competition.test.mjs'\n      - 'tests/mean-reversion-study.test.mjs'
       - '.github/workflows/adaptive-strategy-tests.yml'
   push:
     branches:
-      - 'research/adaptive-strategy-competition'
+      - 'research/adaptive-strategy-competition'\n      - 'research/regime-strategy-allocator'
     paths:
       - 'adaptive/**'
       - 'tests/adaptive-strategy-engine.test.mjs'
@@ -36,13 +36,13 @@ jobs:
         run: node adaptive/run-research.mjs
       - name: Run regime allocator competition
         run: node adaptive/run-regime-research.mjs
-      - name: Save quantitative report
+      - name: Run mean-reversion walk-forward competition\n        run: node adaptive/run-mean-reversion-research.mjs\n      - name: Save quantitative report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: adaptive-walk-forward-report
           path: |
             adaptive-research-report.json
-            regime-research-report.json
+            regime-research-report.json\n            mean-reversion-research-report.json
           if-no-files-found: ignore
           retention-days: 14
