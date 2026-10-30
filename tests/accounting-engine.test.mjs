@@ -17,7 +17,7 @@ test("buy and sell transaction costs are applied once on each side", () => {
   assert.equal(trade.entryPrice,100);
   assert.ok(Math.abs(trade.units - (1/101)) < 1e-12);
   assert.ok(Math.abs(trade.entryCosts - (100/101)*0.01) < 1e-12);
-  assert.ok(Math.abs(trade.exitGrossNotional - (110/101)*100) < 1e-10);
+  assert.ok(Math.abs(trade.exitGrossNotional - 110/101) < 1e-10);
   assert.ok(Math.abs(trade.exitCosts - trade.exitGrossNotional*0.01) < 1e-12);
   assert.ok(Math.abs(result.finalEquity - (110/101)*0.99) < 1e-10);
   assert.equal(result.executionEnabled,false);
@@ -44,7 +44,7 @@ test("mark-to-market drawdown uses liquidation equity and catches adverse close"
     bars:falling,buySignals:[true,false,false],sellSignals:[false,false,false],
     feeBps:0,spreadBps:0,slippageBps:0
   });
-  assert.equal(result.maxDrawdownPct,20);
+  assert.ok(Math.abs(result.maxDrawdownPct - 20) < 1e-10);
 });
 
 test("rejects mismatched signals and invalid costs", () => {
