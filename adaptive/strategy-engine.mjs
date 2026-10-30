@@ -58,6 +58,35 @@ function signals(bars, type) {
   }
   return { buy, sell };
 }
+export function diagnoseStrategySignals(bars, regimeLabels = null) {
+  if (!Array.isArray(bars) || bars.length < 220) throw new Error("At least 220 OHLC bars are required");
+  if (regimeLabels !== null && (!Array.isArray(regimeLabels) || regimeLabels.length !== bars.length)) {
+    throw new Error("regimeLabels must match bars");
+  }
+  const names=["adaptive-momentum","filtered-mean-reversion","volatility-breakout"];
+  const output={};
+  for(const name of names){
+    const {buy,sell}=signals(bars,name);
+    const counts={buy:0,sell:0,byRegime:{}};
+    for(let i=200;i<bars.length;i++){
+      if(buy[i]) counts.buy++;
+      if(sell[i]) counts.sell++;
+      if(buy[i]&&regimeLabels){
+        const regime=regimeLabels[i-1];
+        counts.byRegime[regime]??={buy:0,sell:0};
+        counts.byRegime[regime].buy++;
+      }
+      if(sell[i]&&regimeLabels){
+        const regime=regimeLabels[i-1];
+        counts.byRegime[regime]??={buy:0,sell:0};
+        counts.byRegime[regime].sell++;
+      }
+    }
+    output[name]=counts;
+  }
+  return {mode:"read-only-signal-diagnostics",executionEnabled:false,ordersSupported:false,strategies:output};
+}
+
 export function simulate(bars, strategy, options = {}) {
   if (!["adaptive-momentum","filtered-mean-reversion","volatility-breakout"].includes(strategy)) throw new Error("Unknown strategy");
   const costs = { ...DEFAULT_COSTS, ...options };
@@ -65,14 +94,38 @@ export function simulate(bars, strategy, options = {}) {
   const costRate = (costs.feeBps + costs.spreadBps/2 + costs.slippageBps)/10000;
   if (!Array.isArray(bars) || bars.length < 220) throw new Error("At least 220 OHLC bars are required");
   for (const b of bars) if (![b.o,b.h,b.l,b.c].every(Number.isFinite) || b.o<=0 || b.c<=0 || b.h<b.l) throw new Error("Invalid OHLC bar");
+  const strategyNames=["adaptive-momentum","filtered-mean-reversion","volatility-breakout"];
+  const regimeMap=options.regimeStrategyMap??null;
+  const regimeLabels=options.regimeLabels??null;
+  if(regimeMap!==null){
+    if(!regimeMap||typeof regimeMap!=="object"||Array.isArray(regimeMap)) throw new Error("Invalid regimeStrategyMap");
+    for(const [regime,name] of Object.entries(regimeMap)){
+      if(typeof regime!=="string"||!strategyNames.includes(name)) throw new Error("Invalid regime strategy mapping");
+    }
+    if(!Array.isArray(regimeLabels)||regimeLabels.length!==bars.length||regimeLabels.some(x=>typeof x!=="string")) throw new Error("regimeLabels must match bars");
+  }
+  const signalMap=regimeMap?Object.fromEntries(strategyNames.map(name=>[name,signals(bars,name)])):null;
   const {buy,sell}=signals(bars,strategy);
-  let cash=1, units=0, entry=0, peak=1, maxDD=0, wins=0, trades=0, grossWin=0, grossLoss=0;
+  let cash=1, units=0, entry=0, peak=1, maxDD=0, wins=0, trades=0, grossWin=0, grossLoss=0, heldStrategy=null;
   const equity=[];
   const startIndex = Math.max(200, options.startIndex ?? 200);
   if (!Number.isInteger(startIndex) || startIndex >= bars.length) throw new Error("Invalid startIndex");
   for(let i=startIndex;i<bars.length;i++){
     const px=bars[i].o;
-    if(units===0 && buy[i]){
+    if(regimeMap){
+      // The regime at i-1 is known at the signal close; fills occur at the next candle open.
+      const activeStrategy=regimeMap[regimeLabels[i-1]]??null;
+      const shouldExit=units>0&&(activeStrategy!==heldStrategy||signalMap[heldStrategy]?.sell[i]);
+      if(units>0&&shouldExit){
+        const proceeds=units*px*(1-costRate);
+        const pnl=proceeds-entry;
+        if(pnl>0){wins++;grossWin+=pnl}else grossLoss+=Math.abs(pnl);
+        cash=proceeds;units=0;entry=0;trades++;heldStrategy=null;
+      }
+      if(units===0&&activeStrategy&&signalMap[activeStrategy].buy[i]){
+        entry=cash;units=cash*(1-costRate)/px;cash=0;heldStrategy=activeStrategy;
+      }
+    }else if(units===0 && buy[i]){
       entry=cash; units=cash*(1-costRate)/px; cash=0;
     } else if(units>0 && sell[i]){
       const proceeds=units*px*(1-costRate);
