@@ -58,6 +58,35 @@ function signals(bars, type) {
   }
   return { buy, sell };
 }
+export function diagnoseStrategySignals(bars, regimeLabels = null) {
+  if (!Array.isArray(bars) || bars.length < 220) throw new Error("At least 220 OHLC bars are required");
+  if (regimeLabels !== null && (!Array.isArray(regimeLabels) || regimeLabels.length !== bars.length)) {
+    throw new Error("regimeLabels must match bars");
+  }
+  const names=["adaptive-momentum","filtered-mean-reversion","volatility-breakout"];
+  const output={};
+  for(const name of names){
+    const {buy,sell}=signals(bars,name);
+    const counts={buy:0,sell:0,byRegime:{}};
+    for(let i=200;i<bars.length;i++){
+      if(buy[i]) counts.buy++;
+      if(sell[i]) counts.sell++;
+      if(buy[i]&&regimeLabels){
+        const regime=regimeLabels[i-1];
+        counts.byRegime[regime]??={buy:0,sell:0};
+        counts.byRegime[regime].buy++;
+      }
+      if(sell[i]&&regimeLabels){
+        const regime=regimeLabels[i-1];
+        counts.byRegime[regime]??={buy:0,sell:0};
+        counts.byRegime[regime].sell++;
+      }
+    }
+    output[name]=counts;
+  }
+  return {mode:"read-only-signal-diagnostics",executionEnabled:false,ordersSupported:false,strategies:output};
+}
+
 export function simulate(bars, strategy, options = {}) {
   if (!["adaptive-momentum","filtered-mean-reversion","volatility-breakout"].includes(strategy)) throw new Error("Unknown strategy");
   const costs = { ...DEFAULT_COSTS, ...options };
