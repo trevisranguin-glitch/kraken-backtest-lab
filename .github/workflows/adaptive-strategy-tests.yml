@@ -7,6 +7,7 @@ on:
       - 'tests/regime-engine.test.mjs'
       - 'tests/regime-competition.test.mjs'
       - 'tests/mean-reversion-study.test.mjs'
+      - 'tests/accounting-engine.test.mjs'
       - '.github/workflows/adaptive-strategy-tests.yml'
   push:
     branches:
@@ -30,7 +31,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node --test tests/adaptive-strategy-engine.test.mjs tests/regime-engine.test.mjs tests/regime-competition.test.mjs tests/mean-reversion-study.test.mjs
+      - run: node --test tests/adaptive-strategy-engine.test.mjs tests/regime-engine.test.mjs tests/regime-competition.test.mjs tests/mean-reversion-study.test.mjs tests/accounting-engine.test.mjs
   market-research:
     needs: unit-tests
     runs-on: ubuntu-latest
