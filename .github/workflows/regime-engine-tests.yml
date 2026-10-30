@@ -1,4 +1,4 @@
-name: Adaptive strategy research tests
+name: Regime engine regression tests
 on:
   pull_request:
     paths:
@@ -8,11 +8,12 @@ on:
       - '.github/workflows/regime-engine-tests.yml'
   push:
     branches:
-      - 'research/adaptive-strategy-competition'
+      - 'research/market-regime-engine'
     paths:
       - 'adaptive/**'
       - 'tests/adaptive-strategy-engine.test.mjs'
-      - '.github/workflows/adaptive-strategy-tests.yml'
+      - 'tests/regime-engine.test.mjs'
+      - '.github/workflows/regime-engine-tests.yml'
 permissions:
   contents: read
 jobs:
@@ -24,21 +25,3 @@ jobs:
         with:
           node-version: '22'
       - run: node --test tests/adaptive-strategy-engine.test.mjs tests/regime-engine.test.mjs
-  market-research:
-    needs: unit-tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - name: Fetch public Kraken OHLC and run walk-forward competition
-        run: node adaptive/run-research.mjs
-      - name: Save quantitative report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: adaptive-walk-forward-report
-          path: adaptive-research-report.json
-          if-no-files-found: ignore
-          retention-days: 14
