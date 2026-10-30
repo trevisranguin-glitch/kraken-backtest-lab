@@ -9,6 +9,7 @@ on:
       - 'tests/mean-reversion-study.test.mjs'
       - 'tests/accounting-engine.test.mjs'
       - 'tests/exit-policy-study.test.mjs'
+      - 'tests/walk-forward-exit-validation.test.mjs'
       - '.github/workflows/adaptive-strategy-tests.yml'
   push:
     branches:
@@ -33,7 +34,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node --test tests/adaptive-strategy-engine.test.mjs tests/regime-engine.test.mjs tests/regime-competition.test.mjs tests/mean-reversion-study.test.mjs tests/accounting-engine.test.mjs tests/exit-policy-study.test.mjs
+      - run: node --test tests/adaptive-strategy-engine.test.mjs tests/regime-engine.test.mjs tests/regime-competition.test.mjs tests/mean-reversion-study.test.mjs tests/accounting-engine.test.mjs tests/exit-policy-study.test.mjs tests/walk-forward-exit-validation.test.mjs
   market-research:
     needs: unit-tests
     runs-on: ubuntu-latest
@@ -50,6 +51,8 @@ jobs:
         run: node adaptive/run-mean-reversion-research.mjs
       - name: Run exit policy and cost sensitivity study
         run: node adaptive/run-exit-policy-study.mjs
+      - name: Run independent walk-forward exit validation
+        run: node adaptive/run-walk-forward-exit-validation.mjs
       - name: Save quantitative report
         if: always()
         uses: actions/upload-artifact@v4
@@ -60,5 +63,6 @@ jobs:
             regime-research-report.json
             mean-reversion-research-report.json
             exit-policy-research-report.json
+            walk-forward-exit-validation-report.json
           if-no-files-found: ignore
           retention-days: 14
