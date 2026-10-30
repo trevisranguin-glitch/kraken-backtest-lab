@@ -20,6 +20,7 @@ on:
       - 'tests/regime-engine.test.mjs'
       - 'tests/regime-competition.test.mjs'
       - 'tests/mean-reversion-study.test.mjs'
+      - 'tests/accounting-engine.test.mjs'
       - '.github/workflows/adaptive-strategy-tests.yml'
 permissions:
   contents: read
