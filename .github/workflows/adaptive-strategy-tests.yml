@@ -4,6 +4,7 @@ on:
     paths:
       - 'adaptive/**'
       - 'tests/adaptive-strategy-engine.test.mjs'
+      - 'tests/regime-competition.test.mjs'
       - '.github/workflows/adaptive-strategy-tests.yml'
   push:
     branches:
@@ -22,7 +23,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node --test tests/adaptive-strategy-engine.test.mjs
+      - run: node --test tests/adaptive-strategy-engine.test.mjs tests/regime-engine.test.mjs tests/regime-competition.test.mjs
   market-research:
     needs: unit-tests
     runs-on: ubuntu-latest
@@ -33,11 +34,15 @@ jobs:
           node-version: '22'
       - name: Fetch public Kraken OHLC and run walk-forward competition
         run: node adaptive/run-research.mjs
+      - name: Run regime allocator competition
+        run: node adaptive/run-regime-research.mjs
       - name: Save quantitative report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: adaptive-walk-forward-report
-          path: adaptive-research-report.json
+          path: |
+            adaptive-research-report.json
+            regime-research-report.json
           if-no-files-found: ignore
           retention-days: 14
