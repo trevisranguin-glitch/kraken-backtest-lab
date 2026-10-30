@@ -10,15 +10,17 @@ export const COST_SCENARIOS = Object.freeze([
   {name:"severe_75bps",feeBps:68,spreadBps:4,slippageBps:5}
 ]);
 
-export function evaluateExitPolicy(bars, entryVariant, exitPolicy, costs=DEFAULT_COSTS) {
+export function evaluateExitPolicy(bars, entryVariant, exitPolicy, costs=DEFAULT_COSTS, {startIndex=220,endIndex=bars?.length-1}={}) {
   if(!Array.isArray(bars)||bars.length<260) throw new Error("At least 260 OHLC bars are required");
+  if(!Number.isInteger(startIndex)||startIndex<220||startIndex>=bars.length) throw new Error("Invalid trade start index");
+  if(!Number.isInteger(endIndex)||endIndex<startIndex||endIndex>=bars.length) throw new Error("Invalid trade end index");
   if(!ENTRY_VARIANTS.includes(entryVariant)||!EXIT_POLICIES.includes(exitPolicy)) throw new Error("Unknown entry or exit policy");
   for(const b of bars) if(![b.o,b.h,b.l,b.c].every(Number.isFinite)||b.o<=0||b.c<=0||b.h<b.l) throw new Error("Invalid OHLC bar");
   const close=bars.map(b=>b.c), e100=ema(close,100), strength=rsi(close,14), volatility=atr(bars,14);
   const regimes=detectMarketRegimes(bars).regimes.map(x=>x.regime);
   const buy=Array(bars.length).fill(false), sell=Array(bars.length).fill(false), exitReasons={};
   let activeEntry=-1, stopPrice=0;
-  for(let i=220;i<bars.length;i++){
+  for(let i=startIndex;i<=endIndex;i++){
     const p=i-1;
     if(activeEntry<0){
       const reclaim30=strength[p-1]<30&&strength[p]>=30;
@@ -36,8 +38,8 @@ export function evaluateExitPolicy(bars, entryVariant, exitPolicy, costs=DEFAULT
       if(reason){sell[i]=true;exitReasons[i]=reason;activeEntry=-1;stopPrice=0;}
     }
   }
-  const result=simulateLongOnlyAccounting({bars,buySignals:buy,sellSignals:sell,startIndex:220,...costs,exitReasons});
-  return {...result,entryVariant,exitPolicy,signals:buy.filter(Boolean).length};
+  const result=simulateLongOnlyAccounting({bars,buySignals:buy,sellSignals:sell,startIndex,endIndex,...costs,exitReasons});
+  return {...result,entryVariant,exitPolicy,signals:buy.slice(startIndex,endIndex+1).filter(Boolean).length};
 }
 export function compareExitPolicies(bars,entryVariant){
   const rows=[];
