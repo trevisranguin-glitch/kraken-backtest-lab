@@ -36,7 +36,7 @@ test("flat price history is classified as range after warmup",()=>{
 
 test("persistent rising and falling trends receive directional labels",()=>{
   const up=detectMarketRegimes(bars(500,i=>100+i*0.2)).regimes;
-  const down=detectMarketRegimes(bars(500,i=>200-i*0.2)).regimes;
+  const down=detectMarketRegimes(bars(500,i=>200*Math.exp(-i*0.001))).regimes;
   assert.equal(up.at(-1).regime,"TREND_UP");
   assert.equal(down.at(-1).regime,"TREND_DOWN");
 });
