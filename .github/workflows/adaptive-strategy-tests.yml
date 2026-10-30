@@ -1,0 +1,25 @@
+name: Adaptive strategy research tests
+on:
+  pull_request:
+    paths:
+      - 'adaptive/**'
+      - 'tests/adaptive-strategy-engine.test.mjs'
+      - '.github/workflows/adaptive-strategy-tests.yml'
+  push:
+    branches:
+      - 'research/adaptive-strategy-competition'
+    paths:
+      - 'adaptive/**'
+      - 'tests/adaptive-strategy-engine.test.mjs'
+      - '.github/workflows/adaptive-strategy-tests.yml'
+permissions:
+  contents: read
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/adaptive-strategy-engine.test.mjs
