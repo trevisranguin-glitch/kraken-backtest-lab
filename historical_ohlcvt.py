@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 PAIRS = ("XBTEUR", "ETHEUR", "SOLEUR")
-INTERVAL_MINUTES = (1, 5, 15, 60, 240, 720, 1440)
+INTERVAL_MINUTES = (1, 5, 15, 30, 60, 240, 720, 1440)
 
 
 def inspect_csv(path, interval_minutes):
