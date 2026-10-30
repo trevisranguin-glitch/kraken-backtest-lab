@@ -4,14 +4,19 @@ on:
     paths:
       - 'adaptive/**'
       - 'tests/adaptive-strategy-engine.test.mjs'
-      - 'tests/regime-competition.test.mjs'\n      - 'tests/mean-reversion-study.test.mjs'
+      - 'tests/regime-competition.test.mjs'
+      - 'tests/mean-reversion-study.test.mjs'
       - '.github/workflows/adaptive-strategy-tests.yml'
   push:
     branches:
-      - 'research/adaptive-strategy-competition'\n      - 'research/regime-strategy-allocator'
+      - 'research/adaptive-strategy-competition'
+      - 'research/regime-strategy-allocator'
+      - 'research/mean-reversion-entry-study'
     paths:
       - 'adaptive/**'
       - 'tests/adaptive-strategy-engine.test.mjs'
+      - 'tests/regime-competition.test.mjs'
+      - 'tests/mean-reversion-study.test.mjs'
       - '.github/workflows/adaptive-strategy-tests.yml'
 permissions:
   contents: read
@@ -23,7 +28,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node --test tests/adaptive-strategy-engine.test.mjs tests/regime-engine.test.mjs tests/regime-competition.test.mjs
+      - run: node --test tests/adaptive-strategy-engine.test.mjs tests/regime-engine.test.mjs tests/regime-competition.test.mjs tests/mean-reversion-study.test.mjs
   market-research:
     needs: unit-tests
     runs-on: ubuntu-latest
@@ -36,13 +41,16 @@ jobs:
         run: node adaptive/run-research.mjs
       - name: Run regime allocator competition
         run: node adaptive/run-regime-research.mjs
-      - name: Run mean-reversion walk-forward competition\n        run: node adaptive/run-mean-reversion-research.mjs\n      - name: Save quantitative report
+      - name: Run mean-reversion walk-forward competition
+        run: node adaptive/run-mean-reversion-research.mjs
+      - name: Save quantitative report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: adaptive-walk-forward-report
           path: |
             adaptive-research-report.json
-            regime-research-report.json\n            mean-reversion-research-report.json
+            regime-research-report.json
+            mean-reversion-research-report.json
           if-no-files-found: ignore
           retention-days: 14
