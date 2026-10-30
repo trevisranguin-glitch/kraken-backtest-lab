@@ -1,4 +1,5 @@
-// Research runner intentionally remains separate from all Worker deployments.\nimport { writeFile } from "node:fs/promises";
+// Research runner intentionally remains separate from all Worker deployments.
+import { writeFile } from "node:fs/promises";
 import { fetchClosedOHLC } from "./kraken-data.mjs";
 import { evaluateMeanReversionVariant } from "./mean-reversion-study.mjs";
 import { DEFAULT_COSTS } from "./strategy-engine.mjs";
