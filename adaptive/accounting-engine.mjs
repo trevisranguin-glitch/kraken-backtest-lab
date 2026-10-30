@@ -1,8 +1,9 @@
 // Research-only execution accounting. No exchange API and no order capability.
-export function simulateLongOnlyAccounting({ bars, buySignals, sellSignals, startIndex = 0, feeBps = 26, spreadBps = 4, slippageBps = 5, exitReasons = {} }) {
+export function simulateLongOnlyAccounting({ bars, buySignals, sellSignals, startIndex = 0, endIndex = bars?.length - 1, feeBps = 26, spreadBps = 4, slippageBps = 5, exitReasons = {} }) {
   if (!Array.isArray(bars) || bars.length < 2) throw new Error("At least two bars are required");
   if (!Array.isArray(buySignals) || !Array.isArray(sellSignals) || buySignals.length !== bars.length || sellSignals.length !== bars.length) throw new Error("Signal arrays must match bars");
   if (!Number.isInteger(startIndex) || startIndex < 0 || startIndex >= bars.length) throw new Error("Invalid startIndex");
+  if (!Number.isInteger(endIndex) || endIndex < startIndex || endIndex >= bars.length) throw new Error("Invalid endIndex");
   for (const b of bars) if (![b.o,b.h,b.l,b.c].every(Number.isFinite) || b.o <= 0 || b.c <= 0 || b.h < b.l) throw new Error("Invalid OHLC bar");
   for (const x of [feeBps,spreadBps,slippageBps]) if (!Number.isFinite(x) || x < 0) throw new Error("Invalid transaction costs");
   const costRate = (feeBps + spreadBps / 2 + slippageBps) / 10000;
@@ -27,7 +28,7 @@ export function simulateLongOnlyAccounting({ bars, buySignals, sellSignals, star
     });
     cash = exitNet; units = 0; entryCash = 0; entryPrice = 0; entryIndex = -1; entryCosts = 0;
   };
-  for (let i = startIndex; i < bars.length; i++) {
+  for (let i = startIndex; i <= endIndex; i++) {
     const open = bars[i].o;
     if (units > 0 && sellSignals[i]) {
       closePosition(open, i, exitReasons[i] ?? "signal");
@@ -44,7 +45,7 @@ export function simulateLongOnlyAccounting({ bars, buySignals, sellSignals, star
     if (peak > 0) maxDrawdownPct = Math.max(maxDrawdownPct, (peak - equity) / peak * 100);
     equityCurve.push({ index: i, time: bars[i].t ?? null, equity, cash, units });
   }
-  if (units > 0) closePosition(bars.at(-1).c, bars.length - 1, "end_of_test_liquidation");
+  if (units > 0) closePosition(bars[endIndex].c, endIndex, "end_of_test_liquidation");
   const finalEquity = cash;
   return {
     mode: "read-only-accounting-research", executionEnabled: false, ordersSupported: false,
