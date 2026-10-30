@@ -1,6 +1,5 @@
 // Read-only strategy research. No exchange order APIs are present.
 export const DEFAULT_COSTS = Object.freeze({ feeBps: 26, spreadBps: 4, slippageBps: 5 });
-const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
 
 export function ema(values, period) {
   const out = Array(values.length).fill(null);
@@ -67,7 +66,9 @@ export function simulate(bars, strategy, options = {}) {
   const {buy,sell}=signals(bars,strategy);
   let cash=1, units=0, entry=0, peak=1, maxDD=0, wins=0, trades=0, grossWin=0, grossLoss=0;
   const equity=[];
-  for(let i=200;i<bars.length;i++){
+  const startIndex = Math.max(200, options.startIndex ?? 200);
+  if (!Number.isInteger(startIndex) || startIndex >= bars.length) throw new Error("Invalid startIndex");
+  for(let i=startIndex;i<bars.length;i++){
     const px=bars[i].o;
     if(units===0 && buy[i]){
       entry=cash; units=cash*(1-costRate)/px; cash=0;
@@ -87,7 +88,7 @@ export function simulate(bars, strategy, options = {}) {
     cash=proceeds;trades++;
   }
   const ret=(cash-1)*100;
-  const first=bars[200].o,last=bars[bars.length-1].c;
+  const first=bars[startIndex].o,last=bars[bars.length-1].c;
   const buyHold=((last*(1-costRate))/(first*(1+costRate))-1)*100;
   return {strategy,returnPct:ret,buyHoldReturnPct:buyHold,excessVsBuyHoldPct:ret-buyHold,maxDrawdownPct:maxDD*100,trades,winRatePct:trades?wins/trades*100:0,profitFactor:grossLoss?grossWin/grossLoss:(grossWin?Infinity:0),costsBpsPerSide:costs.feeBps+costs.spreadBps/2+costs.slippageBps};
 }
@@ -103,7 +104,7 @@ export function walkForward(bars, options = {}) {
     for(let f=0;f<folds;f++){
       const start=warmup+f*foldSize, end=f===folds-1?bars.length:warmup+(f+1)*foldSize;
       const segment=bars.slice(start-warmup,end);
-      const result=simulate(segment,name,options);
+      const result=simulate(segment,name,{...options,startIndex:warmup});
       windows.push({...result,window:f+1,testBars:end-start});
     }
     const avg=windows.reduce((s,x)=>s+x.returnPct,0)/windows.length;
