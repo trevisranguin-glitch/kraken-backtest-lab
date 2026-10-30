@@ -1,6 +1,6 @@
 // Walk-forward competition for regime-conditioned strategy allocation. Research only.
 import { detectMarketRegimes } from "./regime-engine.mjs";
-import { simulate } from "./strategy-engine.mjs";
+import { simulate, diagnoseStrategySignals } from "./strategy-engine.mjs";
 
 export const REGIME_ALLOCATORS = Object.freeze({
   "trend-plus-range": {
@@ -65,6 +65,7 @@ export function walkForwardRegimeCompetition(bars, options = {}) {
     executionEnabled: false,
     ordersSupported: false,
     regimeCounts: Object.fromEntries([...new Set(labels)].map(label => [label, labels.filter(x => x === label).length])),
+    signalDiagnostics: diagnoseStrategySignals(bars, labels),
     results
   };
 }
