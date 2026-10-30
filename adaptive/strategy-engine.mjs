@@ -59,7 +59,9 @@ function signals(bars, type) {
   return { buy, sell };
 }
 export function simulate(bars, strategy, options = {}) {
+  if (!["adaptive-momentum","filtered-mean-reversion","volatility-breakout"].includes(strategy)) throw new Error("Unknown strategy");
   const costs = { ...DEFAULT_COSTS, ...options };
+  for (const k of ["feeBps","spreadBps","slippageBps"]) if (!Number.isFinite(costs[k]) || costs[k] < 0) throw new Error("Invalid transaction cost: "+k);
   const costRate = (costs.feeBps + costs.spreadBps/2 + costs.slippageBps)/10000;
   if (!Array.isArray(bars) || bars.length < 220) throw new Error("At least 220 OHLC bars are required");
   for (const b of bars) if (![b.o,b.h,b.l,b.c].every(Number.isFinite) || b.o<=0 || b.c<=0 || b.h<b.l) throw new Error("Invalid OHLC bar");
@@ -108,9 +110,15 @@ export function walkForward(bars, options = {}) {
       windows.push({...result,window:f+1,testBars:end-start});
     }
     const avg=windows.reduce((s,x)=>s+x.returnPct,0)/windows.length;
+    const meanExcess=windows.reduce((s,x)=>s+x.excessVsBuyHoldPct,0)/windows.length;
+    const meanDrawdown=windows.reduce((s,x)=>s+x.maxDrawdownPct,0)/windows.length;
     const positive=windows.filter(x=>x.returnPct>0).length;
-    const robust=positive>=Math.ceil(folds*0.75) && windows.every(x=>Number.isFinite(x.maxDrawdownPct));
-    results[name]={windows,meanReturnPct:avg,positiveWindows:positive,folds,robust};
+    const beatBenchmark=windows.filter(x=>x.excessVsBuyHoldPct>0).length;
+    const totalTrades=windows.reduce((s,x)=>s+x.trades,0);
+    // A candidate is not called robust merely for being profitable: it must also beat passive after costs.
+    const robust=positive>=Math.ceil(folds*0.75) && beatBenchmark>=Math.ceil(folds*0.75) && avg>0 && meanExcess>0 && totalTrades>=3;
+    const researchScore=meanExcess-0.5*meanDrawdown;
+    results[name]={windows,meanReturnPct:avg,meanExcessVsBuyHoldPct:meanExcess,meanMaxDrawdownPct:meanDrawdown,positiveWindows:positive,benchmarkWinningWindows:beatBenchmark,totalTrades,folds,researchScore,robust};
   }
   return {mode:"read-only-research",executionEnabled:false,ordersSupported:false,costModel:"fee + half-spread + slippage on each side",results};
 }
