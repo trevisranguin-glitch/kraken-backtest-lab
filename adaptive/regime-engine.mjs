@@ -1,7 +1,6 @@
 // Causal OHLC regime labels for research only. No order or execution capability.
 import { ema, atr } from "./strategy-engine.mjs";
 
-const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
 function quantile(values, q) {
   if (!values.length) return null;
   const sorted = [...values].sort((a,b)=>a-b);
@@ -18,6 +17,8 @@ export function detectMarketRegimes(bars, options={}) {
   if(!Array.isArray(bars)) throw new Error("Bars must be an array");
   const period=options.efficiencyPeriod??20;
   const volatilityWindow=options.volatilityWindow??100;
+  if(!Number.isInteger(period)||period<2) throw new Error("efficiencyPeriod must be an integer >= 2");
+  if(!Number.isInteger(volatilityWindow)||volatilityWindow<20) throw new Error("volatilityWindow must be an integer >= 20");
   const closes=bars.map(b=>b.c);
   for(const b of bars) {
     if(![b.o,b.h,b.l,b.c].every(Number.isFinite)||b.o<=0||b.c<=0||b.h<b.l) {
