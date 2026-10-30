@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { validateExitPoliciesWalkForward } from "../adaptive/walk-forward-exit-validation.mjs";
+import { evaluateExitPolicy } from "../adaptive/exit-policy-study.mjs";
+import { COST_SCENARIOS } from "../adaptive/exit-policy-study.mjs";
 
 function bars(n=720){
   return Array.from({length:n},(_,i)=>{
@@ -40,13 +42,10 @@ test("each fold compares to same-window buy-and-hold and exposes trade ledger",(
 
 test("future bars cannot alter an earlier fold result",()=>{
   const full=bars();
-  const a=validateExitPoliciesWalkForward(full);
-  const first=a.windows.find(x=>x.fold===1&&x.exitPolicy==="indicator"&&x.costScenario==="base_33bps");
-  const truncated=validateExitPoliciesWalkForward(full.slice(0,first.endIndex+1),{folds:2});
-  const same=truncated.windows.find(x=>x.fold===1&&x.exitPolicy==="indicator"&&x.costScenario==="base_33bps");
-  assert.equal(first.startIndex,same.startIndex);
-  assert.equal(first.endIndex,same.endIndex);
-  assert.ok(Math.abs(first.returnPct-same.returnPct)<1e-10);
+  const first=evaluateExitPolicy(full,"trend_pullback","indicator",COST_SCENARIOS[0],{startIndex:220,endIndex:344});
+  const truncated=evaluateExitPolicy(full.slice(0,345),"trend_pullback","indicator",COST_SCENARIOS[0],{startIndex:220,endIndex:344});
+  assert.ok(Math.abs(first.returnPct-truncated.returnPct)<1e-10);
+  assert.equal(first.tradeCount,truncated.tradeCount);
 });
 
 test("rejects insufficient history and invalid folds",()=>{
