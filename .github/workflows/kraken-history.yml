@@ -33,7 +33,8 @@ jobs:
           assembled = work / "Kraken_OHLCVT_Full.zip"
           chunk = 8 * 1024 * 1024
 
-          checks = urllib.request.urlopen(base + "OHLCVT_Full_PARTS_SHA256SUMS.txt", timeout=120).read().decode("utf-8", "replace")
+          manifest_req = urllib.request.Request(base + "OHLCVT_Full_PARTS_SHA256SUMS.txt", headers={"User-Agent": "kraken-v15-research/1.0"})
+          checks = urllib.request.urlopen(manifest_req, timeout=120).read().decode("utf-8", "replace")
           expected = {}
           for line in checks.splitlines():
               h = re.search(r"\b([a-fA-F0-9]{64})\b", line)
