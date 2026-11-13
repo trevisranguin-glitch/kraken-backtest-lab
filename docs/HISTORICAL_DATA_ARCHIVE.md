@@ -63,3 +63,25 @@ Run `python -m unittest discover -s tests -v`, then import all three markets fro
 4. Use chronological train/validation/test windows and an untouched final holdout.
 5. Include fees, slippage and realistic execution assumptions.
 6. No strategy promotion, Worker deployment or live trading based on ingestion alone.
+
+
+## Safe merge of full-history and quarterly CSV parts
+
+Use `merge_historical_ohlcvt.py` after extracting the required pair/interval CSVs from the full archive and each quarterly update. Keep the original ZIPs and CSVs unchanged. Supply the CSV parts for one pair and one interval; input order does not matter:
+
+```bash
+python merge_historical_ohlcvt.py --interval 240 \
+  --output XBTEUR_240_merged.csv \
+  --manifest XBTEUR_240_merge_manifest.json \
+  /path/to/XBTEUR_240_full.csv /path/to/XBTEUR_240_2026Q3.csv
+```
+
+Repeat separately for ETHEUR and SOLEUR. The merger sorts the combined rows by timestamp, but each individual source file must itself be chronological. It validates row shape, numeric values, timestamp alignment and OHLC bounds. Identical duplicate timestamps (all seven CSV fields exactly equal) are deduplicated. Any conflicting duplicate or malformed source aborts the merge before an output CSV is written. The manifest records every input filename and SHA-256, input and merged row counts, deduplicated overlap count, output SHA-256, UTC coverage and gaps. Gaps are never filled. The merger is offline and explicitly marks research-only mode with `executionEnabled: false`.
+
+Run the full unit suite with:
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+Do not treat a successful merge as proof of strategy profitability. Preserve manifests and raw archives outside Git; do not commit large market datasets.
