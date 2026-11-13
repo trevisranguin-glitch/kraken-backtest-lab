@@ -29,6 +29,7 @@ def read_rows(path, interval_minutes):
     path = Path(path)
     step = interval_minutes * 60
     rows = []
+    previous_timestamp = None
     with path.open("r", newline="", encoding="utf-8") as handle:
         for line_number, raw in enumerate(csv.reader(handle), start=1):
             if not raw or all(not cell.strip() for cell in raw):
@@ -43,11 +44,14 @@ def read_rows(path, interval_minutes):
                 raise ValueError(f"{path}:{line_number}: invalid numeric field") from exc
             if timestamp < 0 or timestamp % step:
                 raise ValueError(f"{path}:{line_number}: timestamp not aligned to {interval_minutes}m")
+            if previous_timestamp is not None and timestamp <= previous_timestamp:
+                raise ValueError(f"{path}:{line_number}: duplicate or non-chronological timestamp")
             if min(open_, high, low, close) <= 0 or volume < 0 or trades < 0:
                 raise ValueError(f"{path}:{line_number}: non-positive price or negative volume/trades")
             if high < max(open_, close, low) or low > min(open_, close, high):
                 raise ValueError(f"{path}:{line_number}: inconsistent OHLC bounds")
             rows.append((timestamp, tuple(raw)))
+            previous_timestamp = timestamp
     if not rows:
         raise ValueError(f"{path}: no candles")
     return rows
