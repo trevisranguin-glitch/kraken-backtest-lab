@@ -1,0 +1,43 @@
+name: Kraken research and control safety checks
+
+on:
+  push:
+    branches: [main, trevis-os-ci-2026-11-13]
+    paths:
+      - "worker.mjs"
+      - "kraken-control/worker/**"
+      - ".github/workflows/ci.yml"
+  pull_request:
+    paths:
+      - "worker.mjs"
+      - "kraken-control/worker/**"
+      - ".github/workflows/ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kraken-safety-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: kraken-control/worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install worker test dependencies
+        run: npm install --no-audit --no-fund
+      - name: Check research worker syntax
+        run: node --check ../../worker.mjs
+      - name: Run paper-only safety and regression tests
+        run: npm test
+      - name: Type-check control Worker
+        run: npm run typecheck
