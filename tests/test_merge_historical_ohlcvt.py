@@ -66,6 +66,13 @@ class MergeHistoricalOHLCVTTests(unittest.TestCase):
             self.assertEqual(result["gap_count"], 1)
             self.assertEqual(result["gaps"][0]["missing_intervals"], 1)
 
+    def test_non_chronological_source_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bad = self.write(root / "bad.csv", [self.row(28800), self.row(0)])
+            with self.assertRaisesRegex(ValueError, "non-chronological"):
+                merge_csv_files([bad], 240, root / "out.csv")
+
     def test_empty_input_file_is_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
