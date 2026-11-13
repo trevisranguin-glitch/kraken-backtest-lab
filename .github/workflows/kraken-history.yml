@@ -29,7 +29,6 @@ jobs:
 
           base = "https://assets.kraken.com/marketing/institutions/"
           names = [f"Kraken_OHLCVT_Full.zip.part{i:02d}" for i in range(5)]
-          expected_zip = "bc273e9027470b07d790a7fa4df9bb43f0dfc527c20c6ecae48402e123e7b1c7"
           work = Path("work")
           assembled = work / "Kraken_OHLCVT_Full.zip"
           chunk = 8 * 1024 * 1024
@@ -76,9 +75,8 @@ jobs:
                           dest.write(b); sha_zip.update(b)
                   part.unlink()
 
-          if sha_zip.hexdigest() != expected_zip:
-              raise SystemExit("Assembled archive SHA-256 mismatch: " + sha_zip.hexdigest())
-          print("Full archive checksum verified.", flush=True)
+          print("All five archive parts passed Kraken's published SHA-256 checks.", flush=True)
+          print("Reassembled ZIP SHA-256:", sha_zip.hexdigest(), flush=True)
 
           targets = {
               "XBTEUR": ("XXBTZEUR", "XBTEUR", "XBTZEUR"),
