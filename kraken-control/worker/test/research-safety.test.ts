@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 
-const researchWorker = readFileSync(new URL("../../../../worker.mjs", import.meta.url), "utf8");
+const researchWorker = readFileSync(new URL("../../../worker.mjs", import.meta.url), "utf8");
 const controlWorker = readFileSync(new URL("../src/index.ts", import.meta.url), "utf8");
 
 describe("Kraken paper-only safety boundaries", () => {
